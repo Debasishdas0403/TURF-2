@@ -38,7 +38,7 @@ if st.session_state.step == 1:
         st.session_state.df = pd.read_excel(uploaded_file)
         st.success("✅ File loaded successfully.")
         st.session_state.step += 1
-        st.experimental_rerun()
+        st.rerun()
 
 # ----------------------------
 # Step 2: Data Summary + GPT Suggestion
@@ -88,7 +88,7 @@ elif st.session_state.step == 2:
     if st.button("Next"):
         st.session_state.method = method
         st.session_state.step += 1
-        st.experimental_rerun()
+        st.rerun()
 
 # ----------------------------
 # Step 3: Effectiveness Score
@@ -111,7 +111,7 @@ elif st.session_state.step == 3:
 
     if st.button("Next"):
         st.session_state.step += 1
-        st.experimental_rerun()
+        st.rerun()
 
 # ----------------------------
 # Step 4: Flatliner Removal
@@ -131,7 +131,7 @@ elif st.session_state.step == 4:
 
     if st.button("Next"):
         st.session_state.step += 1
-        st.experimental_rerun()
+        st.rerun()
 
 # ----------------------------
 # Step 5: Binarization
@@ -154,7 +154,7 @@ elif st.session_state.step == 5:
 
     if st.button("Next"):
         st.session_state.step += 1
-        st.experimental_rerun()
+        st.rerun()
 
 # ----------------------------
 # Step 6: TURF Analysis
@@ -181,7 +181,7 @@ elif st.session_state.step == 6:
 
     if st.button("Next"):
         st.session_state.step += 1
-        st.experimental_rerun()
+        st.rerun()
 
 # ----------------------------
 # Step 7: Monte Carlo Simulation
@@ -218,7 +218,7 @@ elif st.session_state.step == 7:
 
     if st.button("Next"):
         st.session_state.step += 1
-        st.experimental_rerun()
+        st.rerun()
 
 # ----------------------------
 # Step 8: Final Summary
@@ -235,4 +235,4 @@ elif st.session_state.step == 8:
     if st.button("🔁 Restart"):
         for k in list(st.session_state.keys()):
             del st.session_state[k]
-        st.experimental_rerun()
+        st.rerun()
