@@ -208,19 +208,23 @@ elif st.session_state.step == 5:
     df = st.session_state.effectiveness_df.copy()
     st.write(f"🧮 Total respondents: {df.shape[0]}")
 
-    method = st.radio("Choose binarization method", ["T2B", "Index (5% above mean)"])
+    method = st.radio("Choose binarization method", ["T2B", "Index (X% above mean)"])
 
     if method == "T2B":
         binarized_df = df.applymap(lambda x: 1 if x > 5 else 0)
     else:
+        # 🎯 NEW: User input for % above mean (e.g., 5%)
+        percent_above = st.number_input("Set Index Threshold (% above respondent mean)", min_value=0.0, max_value=100.0, value=5.0, step=0.5)
+        multiplier = 1 + percent_above / 100
+
         binarized_df = df.copy()
         for idx, row in df.iterrows():
-            threshold = row.mean() * 1.05
+            threshold = row.mean() * multiplier
             binarized_df.loc[idx] = row.apply(lambda x: 1 if x >= threshold else 0)
 
     st.session_state.binarized_df = binarized_df
 
-    # --- New Visualization ---
+    # --- Visualization ---
     st.subheader("📊 Message-wise Reach (% of 1s after binarization)")
     percentage_ones = (binarized_df.sum(axis=0) / binarized_df.shape[0] * 100).reset_index()
     percentage_ones.columns = ["Message", "Percentage"]
@@ -230,7 +234,7 @@ elif st.session_state.step == 5:
     fig, ax = plt.subplots(figsize=(10, 4))
     sns.barplot(data=percentage_ones, x="Message", y="Percentage", palette="Blues_d", ax=ax)
 
-    # Add labels on top
+    # Add % labels on top
     for patch in ax.patches:
         height = patch.get_height()
         ax.text(
