@@ -6,6 +6,10 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from collections import Counter
 from scipy.stats import skew
+import io
+from pptx import Presentation
+from pptx.util import Inches
+import matplotlib.pyplot as plt
 
 # Optional: for GPT (enable only if you have API key)
 try:
@@ -43,7 +47,6 @@ if st.session_state.step == 1:
 # ----------------------------
 # Step 2: Data Summary + GPT Suggestion
 # ----------------------------
-
 elif st.session_state.step == 2:
     st.header("Step 2: Data Summary & AM/GM Recommendation")
     df = st.session_state.df
@@ -355,10 +358,6 @@ elif st.session_state.step == 7:
 # ----------------------------
 # Step 8: Final Summary
 # ----------------------------
-import io
-from pptx import Presentation
-from pptx.util import Inches
-import matplotlib.pyplot as plt
 
 elif st.session_state.step == 8:
     st.header("✅ Final Summary")
