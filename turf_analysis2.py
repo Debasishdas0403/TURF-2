@@ -311,6 +311,7 @@ elif st.session_state.step == 6:
         gpt_recommendation = response.choices[0].message.content
         st.markdown("### 🤖 GPT Recommendation")
         st.success(gpt_recommendation)
+        st.session_state["gpt_recommendation"] = gpt_recommendation
 
     except Exception as e:
         st.warning(f"⚠️ GPT recommendation skipped: {e}")
