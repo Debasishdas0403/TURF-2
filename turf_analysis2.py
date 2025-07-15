@@ -373,7 +373,11 @@ elif st.session_state.step == 8:
     for k, combo in best_combos.items():
         st.markdown(f"- **{k} messages** → {', '.join([m.split('_')[0] for m in combo])}")
 
-    # --- Generate Chart ---
+    # ✅ Show GPT Recommendation on screen
+    st.subheader("🤖 GPT Recommendation")
+    st.success(gpt_text)
+
+    # --- Generate Chart for PPT ---
     fig, ax = plt.subplots(figsize=(6, 3))
     ax.plot(turf_summary["Messages in Bundle"], turf_summary["Reach (%)"], marker='o', color='green')
     ax.set_title("TURF Reach by Bundle Size")
@@ -421,5 +425,6 @@ elif st.session_state.step == 8:
         for k in list(st.session_state.keys()):
             del st.session_state[k]
         st.rerun()
+
 
 
