@@ -50,6 +50,7 @@ if st.session_state.step == 1:
 # ----------------------------
 elif st.session_state.step == 2:
     st.header("Step 2: Data Summary & AM/GM Recommendation")
+
     df = st.session_state.df
     score_types = ['Differentiated', 'Believable', 'Motivating']
     message_ids = sorted(set(col.split("_")[0] for col in df.columns if col.startswith("M")))
@@ -57,7 +58,7 @@ elif st.session_state.step == 2:
     st.write(f"📊 Respondents: {df.shape[0]}")
     st.write(f"💬 Messages: {', '.join(message_ids)}")
 
-    # Build the summary_df (hidden initially)
+    # ✅ Prepare summary_df
     summary_rows = []
     for msg in message_ids:
         for score_type in score_types:
@@ -73,45 +74,57 @@ elif st.session_state.step == 2:
 
     summary_df = pd.DataFrame(summary_rows)
 
-# GPT Recommendation (run only once)
-if "gpt_recommendation" not in st.session_state:
-    try:
-        grouped_summary = summary_df.groupby("ScoreType")
+    # ✅ Run GPT only once
+    if "gpt_recommendation" not in st.session_state:
+        try:
+            grouped_summary = summary_df.groupby("ScoreType")
 
-        prompt = "You are a message effectiveness analyst. Based on the following summary of Top-2-Box PET message scores, recommend whether to use Arithmetic Mean or Geometric Mean to combine Differentiated, Believable, and Motivating scores for each message.\n\n"
+            prompt = (
+                "You are a message effectiveness analyst. Based on the following summary of "
+                "Top-2-Box PET message scores, recommend whether to use Arithmetic Mean or "
+                "Geometric Mean to combine Differentiated, Believable, and Motivating scores "
+                "for each message.\n\n"
+            )
 
-        for name, group in grouped_summary:
-            prompt += f"\n--- {name.upper()} ---\n"
-            for _, row in group.iterrows():
-                prompt += f"{row['Message']}: Mean={row['Mean']}, StdDev={row['StdDev']}, Skew={row['Skew']}\n"
+            for name, group in grouped_summary:
+                prompt += f"\n--- {name.upper()} ---\n"
+                for _, row in group.iterrows():
+                    prompt += (
+                        f"{row['Message']}: Mean={row['Mean']}, "
+                        f"StdDev={row['StdDev']}, Skew={row['Skew']}\n"
+                    )
 
-        prompt += "\nPlease recommend whether Arithmetic Mean or Geometric Mean is better and why, in 2-3 sentences."
+            prompt += (
+                "\nPlease recommend whether Arithmetic Mean or Geometric Mean is better and why, "
+                "in 2-3 sentences."
+            )
 
-        key = st.secrets["openai_key"]
-        client = openai.OpenAI(api_key=key)
+            key = st.secrets["openai_key"]
+            client = openai.OpenAI(api_key=key)
 
-        response = client.chat.completions.create(
-            model="gpt-4",
-            messages=[
-                {"role": "system", "content": "You are an expert in pharmaceutical message testing and analytics."},
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.1
-        )
+            response = client.chat.completions.create(
+                model="gpt-4",
+                messages=[
+                    {"role": "system", "content": "You are an expert in pharmaceutical message testing and analytics."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.1
+            )
 
-        gpt_recommendation = response.choices[0].message.content
-        st.session_state["gpt_recommendation"] = gpt_recommendation
+            st.session_state["gpt_recommendation"] = response.choices[0].message.content
 
-    except Exception as e:
-        st.session_state["gpt_recommendation"] = f"⚠️ GPT recommendation failed: {e}"
+        except Exception as e:
+            st.session_state["gpt_recommendation"] = f"⚠️ GPT recommendation failed: {e}"
 
-# ✅ Always display cached result
-st.markdown(f"🧠 **GPT Suggestion:** {st.session_state['gpt_recommendation']}")
+    # ✅ Always display the recommendation (cached)
+    st.markdown("### 🤖 GPT Recommendation")
+    st.success(st.session_state["gpt_recommendation"])
 
-    # Optional: Show Stats Table
+    # Optional: show the full stats table
     if st.button("📊 Show Detailed Stats Table"):
         st.dataframe(summary_df)
 
+    # User selection
     method = st.radio("Choose Effectiveness Method", ["AM", "GM"])
     if st.button("Next"):
         st.session_state.method = method
