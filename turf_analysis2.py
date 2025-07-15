@@ -291,63 +291,65 @@ elif st.session_state.step == 6:
     results = []
     best_combos = {}
 
-    # ✅ Step 1: Compute individual message reach (used for sorting and frequency)
-    message_reach = (df.sum() / df.shape[0])  # Series with message as index and % of 1s
-    message_reach_percent = message_reach * 100  # for display and sort
+    # Step 1: Individual message reach
+    message_reach = df.sum() / df.shape[0]
+    message_reach_percent = message_reach * 100  # For reference
 
-    # ✅ Step 2: Run TURF combinations
+    # Step 2: Build best combinations and track message frequency
+    from collections import Counter
+    message_freq_tracker = []
+
     for k in range(1, 6):
         combos = list(itertools.combinations(df.columns, k))
 
-        # Find best combo with highest reach
+        # Find best combo (highest reach)
         best = max(combos, key=lambda c: (df[list(c)].sum(axis=1) > 0).mean())
         reach = (df[list(best)].sum(axis=1) > 0).mean()
 
-        # ✅ Sort messages within best combo by individual reach (desc)
+        # Sort messages in combo by individual reach
         sorted_best = sorted(best, key=lambda m: -message_reach[m])
+        cleaned_names = [m.split('_')[0] for m in sorted_best]
+        combo_str = ", ".join(cleaned_names)
 
-        # Format cleaned labels (strip _Effectiveness etc.)
-        formatted_combo = ", ".join([m.split('_')[0] for m in sorted_best])
-        results.append((
-            k,
-            round(reach * 100, 2),
-            formatted_combo
-        ))
-
+        # Track message use
+        message_freq_tracker.extend(cleaned_names)
         best_combos[k] = sorted_best
 
-    # ✅ Step 3: Prepare TURF summary table
-    turf_summary = pd.DataFrame(results, columns=["Messages in Bundle", "Reach (%)", "Best Combination"])
+        results.append((k, round(reach * 100, 2), cleaned_names, combo_str))
 
-    # ✅ Step 4: Add frequency column for each message
-    all_selected_messages = [m for combo in best_combos.values() for m in combo]
-    msg_counts = pd.Series(all_selected_messages).value_counts().sort_index()
-    msg_freq_df = pd.DataFrame({
-        "Message": [m.split("_")[0] for m in msg_counts.index],
-        "Frequency in Best Combos": msg_counts.values
-    })
+    # Step 3: Calculate message frequencies
+    freq_counter = Counter(message_freq_tracker)
 
-    # ✅ Save to session state
+    # Step 4: Build final turf_summary with Avg Frequency
+    turf_summary_rows = []
+    for k, reach_pct, combo_list, combo_str in results:
+        avg_freq = round(sum(freq_counter[m] for m in combo_list) / len(combo_list), 2)
+        turf_summary_rows.append({
+            "Messages in Bundle": k,
+            "Reach (%)": reach_pct,
+            "Avg Frequency": avg_freq,
+            "Best Combination": combo_str
+        })
+
+    turf_summary = pd.DataFrame(turf_summary_rows)
+
+    # Save to session
     st.session_state.turf_summary = turf_summary
     st.session_state.best_combos = best_combos
     st.session_state.message_reach = message_reach_percent.round(2)
-    st.session_state.message_frequency = msg_freq_df
 
-    # Display summary
+    # Display updated table
     st.subheader("📊 TURF Reach Summary")
     st.dataframe(turf_summary)
 
-    st.subheader("📈 Frequency of Message Appearance in Best Combos")
-    st.dataframe(msg_freq_df)
-
-    # Plot Reach Curve
+    # Reach line plot
     sns.lineplot(data=turf_summary, x="Messages in Bundle", y="Reach (%)", marker="o", color="green")
     plt.title("Reach by Bundle Size")
     plt.ylabel("Reach (%)")
     plt.xlabel("Messages in Bundle")
     st.pyplot(plt.gcf())
 
-    # --- 🤖 GPT Recommendation ---
+    # 🤖 GPT Recommendation
     try:
         prompt = "You are a pharma messaging strategy expert. Below is a TURF analysis output showing reach by number of messages in a bundle. Based on this, suggest the optimal number of messages (one single number) that balances reach and message overload. Justify in 2-3 sentences why this number is optimal.\n\n"
         for _, row in turf_summary.iterrows():
@@ -376,7 +378,6 @@ elif st.session_state.step == 6:
     if st.button("Next"):
         st.session_state.step += 1
         st.rerun()
-
 
 # ----------------------------
 # Step 7: Monte Carlo Simulation
