@@ -57,6 +57,7 @@ elif st.session_state.step == 2:
     st.write(f"📊 Respondents: {df.shape[0]}")
     st.write(f"💬 Messages: {', '.join(message_ids)}")
 
+    # Build the summary_df (hidden initially)
     summary_rows = []
     for msg in message_ids:
         for score_type in score_types:
@@ -71,9 +72,8 @@ elif st.session_state.step == 2:
             })
 
     summary_df = pd.DataFrame(summary_rows)
-    st.dataframe(summary_df)
 
-    # GPT Recommendation (Optional)
+    # GPT Recommendation
     try:
         grouped_summary = summary_df.groupby("ScoreType")
 
@@ -98,16 +98,24 @@ elif st.session_state.step == 2:
             temperature=0.1
         )
 
-        st.markdown(f"🧠 **GPT Suggestion:** {response.choices[0].message.content}")
+        gpt_recommendation = response.choices[0].message.content
+        st.markdown(f"🧠 **GPT Suggestion:** {gpt_recommendation}")
+
+        # Store for use in final step if needed
+        st.session_state["gpt_recommendation"] = gpt_recommendation
+
     except Exception as e:
         st.warning(f"⚠️ GPT recommendation skipped: {e}")
+
+    # Optional: Show Stats Table
+    if st.button("📊 Show Detailed Stats Table"):
+        st.dataframe(summary_df)
 
     method = st.radio("Choose Effectiveness Method", ["AM", "GM"])
     if st.button("Next"):
         st.session_state.method = method
         st.session_state.step += 1
         st.rerun()
-
 
 # ----------------------------
 # Step 3: Effectiveness Score
