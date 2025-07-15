@@ -166,13 +166,20 @@ elif st.session_state.step == 3:
 elif st.session_state.step == 4:
     st.header("Step 4: Remove Flatliners?")
     option = st.radio("Remove respondents with low variance?", ["Yes", "No"])
-    threshold = st.number_input("Variance Threshold", min_value=0.0, max_value=1.0, value=0.05, step=0.01)
+    threshold = st.number_input("Variance Threshold", min_value=0.0, max_value=10.0, value=0.05, step=0.01)
 
-    df = st.session_state.effectiveness_df
+    df = st.session_state.effectiveness_df.copy()
+
     if option == "Yes":
-        retained = df[df.var(axis=1) >= threshold]
-        st.write(f"✅ Retained: {len(retained)} rows, 🗑 Removed: {len(df) - len(retained)}")
-        st.session_state.effectiveness_df = retained
+        # Compute row-wise variance with ddof=0 to avoid dropping small sample
+        row_variances = df.var(axis=1, ddof=0)
+        retained_df = df[row_variances >= threshold]
+        removed_count = df.shape[0] - retained_df.shape[0]
+
+        st.write(f"✅ Retained: {retained_df.shape[0]} rows")
+        st.write(f"🗑 Removed: {removed_count} rows")
+
+        st.session_state.effectiveness_df = retained_df
     else:
         st.info("No respondents removed.")
 
