@@ -275,9 +275,41 @@ elif st.session_state.step == 6:
     st.session_state.turf_summary = turf_summary
     st.session_state.best_combos = best_combos
 
+    st.subheader("📊 TURF Reach Summary")
     st.dataframe(turf_summary)
+
+    # Plot line chart
     sns.lineplot(data=turf_summary, x="Messages in Bundle", y="Reach (%)", marker="o", color="green")
+    plt.title("Reach by Bundle Size")
+    plt.ylabel("Reach (%)")
+    plt.xlabel("Messages in Bundle")
     st.pyplot(plt.gcf())
+
+    # --- 🧠 GPT Recommendation ---
+    try:
+        prompt = "You are a pharma messaging strategy expert. Below is a TURF analysis output showing reach by number of messages in a bundle. Based on this, suggest the optimal number of messages (one single number) that balances reach and message overload. Justify in 2-3 sentences why this number is optimal.\n\n"
+        for _, row in turf_summary.iterrows():
+            prompt += f"{int(row['Messages in Bundle'])} messages → Reach: {row['Reach (%)']}%, Best Combo: {row['Best Combination']}\n"
+
+        prompt += "\nPlease recommend ONE optimal number of messages to proceed with."
+
+        key = st.secrets["openai_key"]
+        client = openai.OpenAI(api_key=key)
+        response = client.chat.completions.create(
+            model="gpt-4",
+            messages=[
+                {"role": "system", "content": "You are a marketing analytics and messaging expert."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.3
+        )
+
+        gpt_recommendation = response.choices[0].message.content
+        st.markdown("### 🤖 GPT Recommendation")
+        st.success(gpt_recommendation)
+
+    except Exception as e:
+        st.warning(f"⚠️ GPT recommendation skipped: {e}")
 
     if st.button("Next"):
         st.session_state.step += 1
