@@ -44,36 +44,6 @@ if st.session_state.step == 1:
 # Step 2: Data Summary + GPT Suggestion
 # ----------------------------
 
-# Collapse into plain text table for GPT
-# Convert Summary to GPT Prompt
-grouped_summary = summary_df.groupby("ScoreType")
-
-prompt = "You are a message effectiveness analyst. Based on the following summary of Top-2-Box PET message scores, recommend whether to use Arithmetic Mean or Geometric Mean to combine Differentiated, Believable, and Motivating scores for each message.\n\n"
-
-for name, group in grouped_summary:
-    prompt += f"\n--- {name.upper()} ---\n"
-    for _, row in group.iterrows():
-        prompt += f"{row['Message']}: Mean={row['Mean']}, StdDev={row['StdDev']}, Skew={row['Skew']}\n"
-
-prompt += "\nPlease recommend whether Arithmetic Mean or Geometric Mean is better and why, in 2-3 sentences."
-
-
-key = st.secrets ["openai_key"]
-client = openai.OpenAI(api_key=key)
-
-response = client.chat.completions.create(
-    model="gpt-4",
-    messages=[
-        {"role": "system", "content": "You are an expert in pharmaceutical message testing and analytics."},
-        {"role": "user", "content": prompt}
-    ],
-    temperature=0.1
-)
-
-print("\n🤖 GPT Recommendation:")
-print(response.choices[0].message.content)
-
-
 elif st.session_state.step == 2:
     st.header("Step 2: Data Summary & AM/GM Recommendation")
     df = st.session_state.df
@@ -101,25 +71,39 @@ elif st.session_state.step == 2:
 
     # GPT Recommendation (Optional)
     try:
-        prompt = "Based on these score summaries, recommend Arithmetic Mean (AM) or Geometric Mean (GM) for message effectiveness. Justify in 1-2 sentences.\n\n"
-        for row in summary_df.itertuples():
-            prompt += f"{row.Message} ({row.ScoreType}): Mean={row.Mean}, StdDev={row.StdDev}, Skew={row.Skew}\n"
+        grouped_summary = summary_df.groupby("ScoreType")
 
-        response = openai.ChatCompletion.create(
+        prompt = "You are a message effectiveness analyst. Based on the following summary of Top-2-Box PET message scores, recommend whether to use Arithmetic Mean or Geometric Mean to combine Differentiated, Believable, and Motivating scores for each message.\n\n"
+
+        for name, group in grouped_summary:
+            prompt += f"\n--- {name.upper()} ---\n"
+            for _, row in group.iterrows():
+                prompt += f"{row['Message']}: Mean={row['Mean']}, StdDev={row['StdDev']}, Skew={row['Skew']}\n"
+
+        prompt += "\nPlease recommend whether Arithmetic Mean or Geometric Mean is better and why, in 2-3 sentences."
+
+        key = st.secrets["openai_key"]
+        client = openai.OpenAI(api_key=key)
+
+        response = client.chat.completions.create(
             model="gpt-4",
-            messages=[{"role": "system", "content": "You are a message analysis expert."},
-                      {"role": "user", "content": prompt}]
+            messages=[
+                {"role": "system", "content": "You are an expert in pharmaceutical message testing and analytics."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.1
         )
-        recommendation = response['choices'][0]['message']['content']
-        st.markdown(f"🧠 **GPT Suggestion:** {recommendation}")
-    except:
-        st.warning("⚠️ GPT recommendation skipped (API key missing or failed).")
+
+        st.markdown(f"🧠 **GPT Suggestion:** {response.choices[0].message.content}")
+    except Exception as e:
+        st.warning(f"⚠️ GPT recommendation skipped: {e}")
 
     method = st.radio("Choose Effectiveness Method", ["AM", "GM"])
     if st.button("Next"):
         st.session_state.method = method
         st.session_state.step += 1
         st.rerun()
+
 
 # ----------------------------
 # Step 3: Effectiveness Score
