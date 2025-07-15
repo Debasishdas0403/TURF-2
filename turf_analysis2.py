@@ -288,72 +288,84 @@ elif st.session_state.step == 5:
 elif st.session_state.step == 6:
     st.header("Step 6: TURF Analysis (Reach by Bundle Size)")
     df = st.session_state.binarized_df
-    results = []
+    message_reach = df.sum() / df.shape[0]
+
+    turf_summary_rows = []
     best_combos = {}
 
-    # Step 1: Individual message reach
-    message_reach = df.sum() / df.shape[0]
-    message_reach_percent = message_reach * 100  # For reference
-
-    # Step 2: Build best combinations and track message frequency
-    from collections import Counter
-    message_freq_tracker = []
-
     for k in range(1, 6):
-        combos = list(itertools.combinations(df.columns, k))
+        # Greedy TURF algorithm
+        greedy_combo = []
+        remaining = list(df.columns)
+        turf_input_df = df.copy()
 
-        # Find best combo (highest reach)
-        best = max(combos, key=lambda c: (df[list(c)].sum(axis=1) > 0).mean())
-        reach = (df[list(best)].sum(axis=1) > 0).mean()
+        for _ in range(k):
+            best_var = None
+            best_reach = -1
+            best_freq = -1
 
-        # Sort messages in combo by individual reach
-        sorted_best = sorted(best, key=lambda m: -message_reach[m])
-        cleaned_names = [m.split('_')[0] for m in sorted_best]
-        combo_str = ", ".join(cleaned_names)
+            for var in remaining:
+                test_combo = greedy_combo + [var]
+                test_df = turf_input_df[test_combo]
+                respondent_reach = (test_df.sum(axis=1) > 0)
+                reach = respondent_reach.mean()
 
-        # Track message use
-        message_freq_tracker.extend(cleaned_names)
-        best_combos[k] = sorted_best
+                # ✅ Avg frequency among reached respondents
+                if respondent_reach.sum() > 0:
+                    freq = test_df[respondent_reach].sum(axis=1).mean()
+                else:
+                    freq = 0
 
-        results.append((k, round(reach * 100, 2), cleaned_names, combo_str))
+                if reach > best_reach or (reach == best_reach and freq > best_freq):
+                    best_var = var
+                    best_reach = reach
+                    best_freq = freq
 
-    # Step 3: Calculate message frequencies
-    freq_counter = Counter(message_freq_tracker)
+            greedy_combo.append(best_var)
+            remaining.remove(best_var)
 
-    # Step 4: Build final turf_summary with Avg Frequency
-    turf_summary_rows = []
-    for k, reach_pct, combo_list, combo_str in results:
-        avg_freq = round(sum(freq_counter[m] for m in combo_list) / len(combo_list), 2)
+        # Final best combo for this k
+        final_df = turf_input_df[greedy_combo]
+        respondent_reach = (final_df.sum(axis=1) > 0)
+        reach_pct = round(respondent_reach.mean() * 100, 2)
+        avg_freq = round(final_df[respondent_reach].sum(axis=1).mean(), 2)
+
+        # Sort combo by message-level reach (for display only)
+        sorted_combo = sorted(greedy_combo, key=lambda m: -message_reach[m])
+        cleaned_combo = ", ".join([m.split("_")[0] for m in sorted_combo])
+
         turf_summary_rows.append({
             "Messages in Bundle": k,
             "Reach (%)": reach_pct,
             "Avg Frequency": avg_freq,
-            "Best Combination": combo_str
+            "Best Combination": cleaned_combo
         })
 
+        best_combos[k] = sorted_combo
+
+    # Final summary table
     turf_summary = pd.DataFrame(turf_summary_rows)
 
     # Save to session
     st.session_state.turf_summary = turf_summary
     st.session_state.best_combos = best_combos
-    st.session_state.message_reach = message_reach_percent.round(2)
 
-    # Display updated table
+    # Display summary
     st.subheader("📊 TURF Reach Summary")
     st.dataframe(turf_summary)
 
-    # Reach line plot
+    # Plot Reach Curve
     sns.lineplot(data=turf_summary, x="Messages in Bundle", y="Reach (%)", marker="o", color="green")
     plt.title("Reach by Bundle Size")
     plt.ylabel("Reach (%)")
     plt.xlabel("Messages in Bundle")
     st.pyplot(plt.gcf())
 
-    # 🤖 GPT Recommendation
+    # --- 🤖 GPT Recommendation ---
     try:
         prompt = "You are a pharma messaging strategy expert. Below is a TURF analysis output showing reach by number of messages in a bundle. Based on this, suggest the optimal number of messages (one single number) that balances reach and message overload. Justify in 2-3 sentences why this number is optimal.\n\n"
         for _, row in turf_summary.iterrows():
-            prompt += f"{int(row['Messages in Bundle'])} messages → Reach: {row['Reach (%)']}%, Best Combo: {row['Best Combination']}\n"
+            prompt += f"{int(row['Messages in Bundle'])} messages → Reach: {row['Reach (%)']}%, Avg Freq: {row['Avg Frequency']}, Best Combo: {row['Best Combination']}\n"
         prompt += "\nPlease recommend ONE optimal number of messages to proceed with."
 
         key = st.secrets["openai_key"]
@@ -378,6 +390,7 @@ elif st.session_state.step == 6:
     if st.button("Next"):
         st.session_state.step += 1
         st.rerun()
+
 
 # ----------------------------
 # Step 7: Monte Carlo Simulation
