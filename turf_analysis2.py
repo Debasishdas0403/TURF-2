@@ -73,7 +73,8 @@ elif st.session_state.step == 2:
 
     summary_df = pd.DataFrame(summary_rows)
 
-    # GPT Recommendation
+# GPT Recommendation (run only once)
+if "gpt_recommendation" not in st.session_state:
     try:
         grouped_summary = summary_df.groupby("ScoreType")
 
@@ -99,13 +100,13 @@ elif st.session_state.step == 2:
         )
 
         gpt_recommendation = response.choices[0].message.content
-        st.markdown(f"🧠 **GPT Suggestion:** {gpt_recommendation}")
-
-        # Store for use in final step if needed
         st.session_state["gpt_recommendation"] = gpt_recommendation
 
     except Exception as e:
-        st.warning(f"⚠️ GPT recommendation skipped: {e}")
+        st.session_state["gpt_recommendation"] = f"⚠️ GPT recommendation failed: {e}"
+
+# ✅ Always display cached result
+st.markdown(f"🧠 **GPT Suggestion:** {st.session_state['gpt_recommendation']}")
 
     # Optional: Show Stats Table
     if st.button("📊 Show Detailed Stats Table"):
