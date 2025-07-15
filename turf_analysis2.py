@@ -204,8 +204,11 @@ elif st.session_state.step == 4:
 # ----------------------------
 elif st.session_state.step == 5:
     st.header("Step 5: Binarization")
-    method = st.radio("Choose binarization method", ["T2B", "Index (5% above mean)"])
+
     df = st.session_state.effectiveness_df.copy()
+    st.write(f"🧮 Total respondents: {df.shape[0]}")
+
+    method = st.radio("Choose binarization method", ["T2B", "Index (5% above mean)"])
 
     if method == "T2B":
         binarized_df = df.applymap(lambda x: 1 if x > 5 else 0)
@@ -216,7 +219,34 @@ elif st.session_state.step == 5:
             binarized_df.loc[idx] = row.apply(lambda x: 1 if x >= threshold else 0)
 
     st.session_state.binarized_df = binarized_df
-    st.dataframe(binarized_df.head())
+
+    # --- New Visualization ---
+    st.subheader("📊 Message-wise Reach (% of 1s after binarization)")
+    percentage_ones = (binarized_df.sum(axis=0) / binarized_df.shape[0] * 100).reset_index()
+    percentage_ones.columns = ["Message", "Percentage"]
+    percentage_ones["Message"] = percentage_ones["Message"].str.replace("_Effectiveness", "", regex=False)
+    percentage_ones = percentage_ones.sort_values(by="Percentage", ascending=False)
+
+    fig, ax = plt.subplots(figsize=(10, 4))
+    sns.barplot(data=percentage_ones, x="Message", y="Percentage", palette="Blues_d", ax=ax)
+
+    # Add labels on top
+    for patch in ax.patches:
+        height = patch.get_height()
+        ax.text(
+            patch.get_x() + patch.get_width() / 2,
+            height + 1,
+            f"{height:.1f}%",
+            ha='center',
+            va='bottom',
+            fontsize=9
+        )
+
+    ax.set_title("Binarized Reach per Message")
+    ax.set_ylabel("Percentage of 1s")
+    ax.set_xlabel("Message")
+    plt.xticks(rotation=45)
+    st.pyplot(fig)
 
     if st.button("Next"):
         st.session_state.step += 1
