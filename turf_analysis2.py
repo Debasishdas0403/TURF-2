@@ -122,7 +122,20 @@ elif st.session_state.step == 3:
             effectiveness_df[f"{msg}_Effectiveness"] = df[cols].replace(0, 0.01).prod(axis=1)**(1/3)
 
     st.session_state.effectiveness_df = effectiveness_df
-    st.dataframe(effectiveness_df.head())
+
+    # --- NEW: Visualization ---
+    st.subheader("📊 Average Effectiveness by Message")
+    avg_scores = effectiveness_df.mean().reset_index()
+    avg_scores.columns = ["Message", "Average Effectiveness"]
+    avg_scores["Message"] = avg_scores["Message"].str.replace("_Effectiveness", "", regex=False)
+
+    fig, ax = plt.subplots(figsize=(10, 4))
+    sns.barplot(data=avg_scores, x="Message", y="Average Effectiveness", palette="viridis", ax=ax)
+    ax.set_title("Average Effectiveness Scores (AM/GM)")
+    ax.set_ylabel("Score")
+    ax.set_xlabel("Message")
+    plt.xticks(rotation=45)
+    st.pyplot(fig)
 
     if st.button("Next"):
         st.session_state.step += 1
