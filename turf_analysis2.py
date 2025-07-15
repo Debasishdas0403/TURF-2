@@ -123,15 +123,25 @@ elif st.session_state.step == 3:
 
     st.session_state.effectiveness_df = effectiveness_df
 
-    # --- NEW: Visualization ---
+    # --- Visualization ---
     st.subheader("📊 Average Effectiveness by Message")
     avg_scores = effectiveness_df.mean().reset_index()
     avg_scores.columns = ["Message", "Average Effectiveness"]
     avg_scores["Message"] = avg_scores["Message"].str.replace("_Effectiveness", "", regex=False)
 
+    # Sort in descending order
+    avg_scores = avg_scores.sort_values(by="Average Effectiveness", ascending=False)
+
+    # Plot
     fig, ax = plt.subplots(figsize=(10, 4))
     sns.barplot(data=avg_scores, x="Message", y="Average Effectiveness", palette="viridis", ax=ax)
-    ax.set_title("Average Effectiveness Scores (AM/GM)")
+
+    # Add numbers on top of bars
+    for i, row in avg_scores.iterrows():
+        ax.text(i, row["Average Effectiveness"] + 0.01, f'{row["Average Effectiveness"]:.2f}', 
+                ha='center', va='bottom', fontsize=9)
+
+    ax.set_title("Average Effectiveness Scores (Sorted)")
     ax.set_ylabel("Score")
     ax.set_xlabel("Message")
     plt.xticks(rotation=45)
