@@ -166,32 +166,36 @@ elif st.session_state.step == 3:
 elif st.session_state.step == 4:
     st.header("Step 4: Remove Flatliners?")
 
-    # ✅ Only set this once when arriving at this step
-    if 'original_effectiveness_df' not in st.session_state:
-        st.session_state.original_effectiveness_df = st.session_state.effectiveness_df.copy()
+    # Always work from original unfiltered effectiveness_df
+    original_df = st.session_state.get("original_effectiveness_df")
+    if original_df is None:
+        original_df = st.session_state.effectiveness_df.copy()
+        st.session_state.original_effectiveness_df = original_df
 
     option = st.radio("Remove respondents with low variance?", ["No", "Yes"], index=0)
     threshold = st.number_input("Variance Threshold", min_value=0.0, max_value=10.0, value=0.05, step=0.01)
 
-    base_df = st.session_state.original_effectiveness_df.copy()
-
     if option == "Yes":
-        row_variances = base_df.var(axis=1, ddof=0)
-        retained_df = base_df[row_variances >= threshold]
-        removed_count = base_df.shape[0] - retained_df.shape[0]
+        # Calculate from original each time
+        row_variances = original_df.var(axis=1, ddof=0)
+        retained_df = original_df[row_variances >= threshold]
+        removed_count = original_df.shape[0] - retained_df.shape[0]
 
         st.write(f"✅ Retained: {retained_df.shape[0]} rows")
         st.write(f"🗑 Removed: {removed_count} rows")
-
-        st.session_state.effectiveness_df = retained_df
     else:
-        st.info(f"Retained all {base_df.shape[0]} respondents (no flatliners removed).")
-        st.session_state.effectiveness_df = base_df
+        st.info(f"Retained all {original_df.shape[0]} respondents (no flatliners removed).")
 
+    # Only apply filtering on button click
     if st.button("Next"):
-        # Clean up original copy to free memory
-        if 'original_effectiveness_df' in st.session_state:
-            del st.session_state.original_effectiveness_df
+        if option == "Yes":
+            st.session_state.effectiveness_df = retained_df
+        else:
+            st.session_state.effectiveness_df = original_df
+
+        # Cleanup original store
+        del st.session_state.original_effectiveness_df
+
         st.session_state.step += 1
         st.rerun()
 
