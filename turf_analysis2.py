@@ -131,10 +131,11 @@ elif st.session_state.step == 3:
 
     # Sort in descending order
     avg_scores = avg_scores.sort_values(by="Average Effectiveness", ascending=False)
+    sorted_messages = avg_scores["Message"].tolist()  # Keep sorted order for plotting
 
     # Plot
     fig, ax = plt.subplots(figsize=(10, 4))
-    sns.barplot(data=avg_scores, x="Message", y="Average Effectiveness", palette="viridis", ax=ax)
+    sns.barplot(data=avg_scores, x="Message", y="Average Effectiveness", palette="viridis", ax=ax, order=sorted_messages)
 
     # Add numbers on top of bars
     for i, row in avg_scores.iterrows():
