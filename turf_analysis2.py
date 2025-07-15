@@ -362,16 +362,19 @@ import matplotlib.pyplot as plt
 
 elif st.session_state.step == 8:
     st.header("✅ Final Summary")
+    turf_summary = st.session_state.turf_summary
+    best_combos = st.session_state.best_combos
+    gpt_text = st.session_state.get("gpt_recommendation", "GPT recommendation not available.")
+
     st.subheader("TURF Results")
-    st.dataframe(st.session_state.turf_summary)
+    st.dataframe(turf_summary)
 
     st.subheader("Best Combos by Bundle Size")
-    for k, combo in st.session_state.best_combos.items():
+    for k, combo in best_combos.items():
         st.markdown(f"- **{k} messages** → {', '.join([m.split('_')[0] for m in combo])}")
 
-    # --- Generate TURF Reach Line Chart ---
+    # --- Generate Chart ---
     fig, ax = plt.subplots(figsize=(6, 3))
-    turf_summary = st.session_state.turf_summary
     ax.plot(turf_summary["Messages in Bundle"], turf_summary["Reach (%)"], marker='o', color='green')
     ax.set_title("TURF Reach by Bundle Size")
     ax.set_xlabel("Messages in Bundle")
@@ -398,13 +401,11 @@ elif st.session_state.step == 8:
     for _, row in turf_summary.iterrows():
         tf.add_paragraph().text = f"{int(row['Messages in Bundle'])} messages → {row['Best Combination']}"
 
-    gpt_text = st.session_state.get("gpt_recommendation", "GPT recommendation not available.")
     slide = prs.slides.add_slide(prs.slide_layouts[6])
     tf2 = slide.shapes.add_textbox(Inches(0.5), Inches(1.5), Inches(8), Inches(4)).text_frame
     tf2.text = "🤖 GPT Recommendation:\n"
     tf2.add_paragraph().text = gpt_text
 
-    # Save PPT to buffer
     ppt_buf = io.BytesIO()
     prs.save(ppt_buf)
     ppt_buf.seek(0)
@@ -420,4 +421,5 @@ elif st.session_state.step == 8:
         for k in list(st.session_state.keys()):
             del st.session_state[k]
         st.rerun()
+
 
