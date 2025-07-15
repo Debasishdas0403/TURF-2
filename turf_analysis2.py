@@ -166,7 +166,7 @@ elif st.session_state.step == 3:
 elif st.session_state.step == 4:
     st.header("Step 4: Remove Flatliners?")
     option = st.radio("Remove respondents with low variance?", ["Yes", "No"])
-    threshold = st.number_input("Variance Threshold", value=0.05)
+    threshold = st.number_input("Variance Threshold", min_value=0.0, max_value=1.0, value=0.05, step=0.01)
 
     df = st.session_state.effectiveness_df
     if option == "Yes":
