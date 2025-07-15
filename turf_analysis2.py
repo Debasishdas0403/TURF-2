@@ -134,27 +134,27 @@ elif st.session_state.step == 3:
     sorted_messages = avg_scores["Message"].tolist()  # Keep sorted order for plotting
 
     # Plot
-fig, ax = plt.subplots(figsize=(10, 4))
-sns.barplot(data=avg_scores, x="Message", y="Average Effectiveness", palette="viridis", ax=ax, order=sorted_messages)
-
-# ✅ Correct label placement using bar patches
-for patch in ax.patches:
-    height = patch.get_height()
-    ax.text(
-        patch.get_x() + patch.get_width() / 2,
-        height + 0.02,
-        f"{height:.2f}",
-        ha='center',
-        va='bottom',
-        fontsize=9,
-        color='black'
-    )
-
-ax.set_title("Average Effectiveness Scores (Sorted)")
-ax.set_ylabel("Score")
-ax.set_xlabel("Message")
-plt.xticks(rotation=45)
-st.pyplot(fig)
+    fig, ax = plt.subplots(figsize=(10, 4))
+    sns.barplot(data=avg_scores, x="Message", y="Average Effectiveness", palette="viridis", ax=ax, order=sorted_messages)
+    
+    # ✅ Correct label placement using bar patches
+    for patch in ax.patches:
+        height = patch.get_height()
+        ax.text(
+            patch.get_x() + patch.get_width() / 2,
+            height + 0.02,
+            f"{height:.2f}",
+            ha='center',
+            va='bottom',
+            fontsize=9,
+            color='black'
+        )
+    
+    ax.set_title("Average Effectiveness Scores (Sorted)")
+    ax.set_ylabel("Score")
+    ax.set_xlabel("Message")
+    plt.xticks(rotation=45)
+    st.pyplot(fig)
 
     if st.button("Next"):
         st.session_state.step += 1
