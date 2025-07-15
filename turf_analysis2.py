@@ -7,7 +7,7 @@ import seaborn as sns
 from collections import Counter
 from scipy.stats import skew
 import io
-pip install pptx --quiet
+!pip install pptx --quiet
 from pptx import Presentation
 from pptx.util import Inches
 import matplotlib.pyplot as plt
