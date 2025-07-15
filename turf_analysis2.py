@@ -10,7 +10,7 @@ from scipy.stats import skew
 # Optional: for GPT (enable only if you have API key)
 try:
     import openai
-    openai.api_key = st.secrets["OPENAI_API_KEY"]  # or hardcode your key
+    openai.api_key = st.secrets["openai_key"]  # or hardcode your key
 except:
     pass
 
@@ -57,8 +57,7 @@ for name, group in grouped_summary:
 
 prompt += "\nPlease recommend whether Arithmetic Mean or Geometric Mean is better and why, in 2-3 sentences."
 
-import openai
-import streamlit as st
+
 key = st.secrets ["openai_key"]
 client = openai.OpenAI(api_key=key)
 
@@ -73,7 +72,6 @@ response = client.chat.completions.create(
 
 print("\n🤖 GPT Recommendation:")
 print(response.choices[0].message.content)
-
 
 
 elif st.session_state.step == 2:
