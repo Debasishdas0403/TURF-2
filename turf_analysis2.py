@@ -477,7 +477,7 @@ elif st.session_state.step == 8:
     "• [Bundle Size] ...\n"
     "• [Message Sequence] ...\n"
     "• [Confidence] ..."
-)
+    )
 
 
     try:
