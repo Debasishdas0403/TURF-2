@@ -463,13 +463,22 @@ elif st.session_state.step == 8:
     best_combo_labels = ", ".join([m.split("_")[0] for m in best_combo])
 
     gpt_prompt = (
-        "You are a pharma marketing strategist. Based on the TURF analysis and Monte Carlo simulation, "
-        "summarize the recommended bundle strategy as three concise bullet points:\n\n"
-        f"1. What is the best bundle size? (TURF output: {bundle_size} messages with {top_row['Reach (%)']}% reach)\n"
-        f"2. What is the ideal message sequence? (Top {bundle_size}: {best_combo_labels})\n"
-        f"3. What is the confidence in this recommendation? (Monte Carlo: {monte_carlo_confidence})\n\n"
-        "Give the response as 3 professional bullet points."
-    )
+    "You are a pharma marketing strategist tasked with summarizing the final recommendation from a TURF analysis and Monte Carlo simulation. "
+    "You will receive the top-performing message bundle, sequence, and a confidence signal from simulation stability.\n\n"
+    "Your goal is to summarize the results in exactly 3 professional bullet points.\n\n"
+    f"- TURF output: Best bundle size = {bundle_size}, Reach = {top_row['Reach (%)']}%\n"
+    f"- Recommended message sequence: {best_combo_labels}\n"
+    f"- Monte Carlo simulation confidence: {monte_carlo_confidence}\n\n"
+    "👉 Please respond in exactly 3 clear, standalone bullet points covering:\n"
+    "1. The best bundle size and why\n"
+    "2. The message combination in recommended sequence\n"
+    "3. Confidence in recommendation based on Monte Carlo simulation\n\n"
+    "Format:\n"
+    "• [Bundle Size] ...\n"
+    "• [Message Sequence] ...\n"
+    "• [Confidence] ..."
+)
+
 
     try:
         key = st.secrets["openai_key"]
