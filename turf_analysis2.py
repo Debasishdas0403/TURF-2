@@ -445,7 +445,7 @@ elif st.session_state.step == 8:
     best_combos = st.session_state.best_combos
     monte_carlo_confidence = st.session_state.get("monte_carlo_result", "Monte Carlo confidence not available.")
 
-    # --- TURF Output Display ---
+    # --- Display TURF Table and Combos ---
     st.subheader("TURF Results")
     st.dataframe(turf_summary)
 
@@ -453,29 +453,36 @@ elif st.session_state.step == 8:
     for k, combo in best_combos.items():
         st.markdown(f"- **{k} messages** → {', '.join([m.split('_')[0] for m in combo])}")
 
-    # --- Generate GPT Prompt (Final Recommendations) ---
-    top_row = turf_summary.sort_values("Reach (%)", ascending=False).iloc[0]
-    bundle_size = int(top_row["Messages in Bundle"])
+    # --- STEP 1: Extract bundle size from GPT step 6 response ---
+    import re
+    raw_gpt_text = st.session_state.get("gpt_recommendation", "")
+    bundle_size_match = re.search(r'\b(\d)\s*messages?\b', raw_gpt_text)
+    if bundle_size_match:
+        bundle_size = int(bundle_size_match.group(1))
+    else:
+        bundle_size = int(turf_summary.sort_values("Reach (%)", ascending=False).iloc[0]["Messages in Bundle"])
+
+    # --- STEP 2: Fetch best combo and reach for that size ---
+    row = turf_summary[turf_summary["Messages in Bundle"] == bundle_size].iloc[0]
     best_combo = best_combos[bundle_size]
     best_combo_labels = ", ".join([m.split("_")[0] for m in best_combo])
 
+    # --- STEP 3: Build GPT Prompt with selected bundle size ---
     gpt_prompt = (
-    "You are a pharma marketing strategist tasked with summarizing the final recommendation from a TURF analysis and Monte Carlo simulation. "
-    "You will receive the top-performing message bundle, sequence, and a confidence signal from simulation stability.\n\n"
-    "Your goal is to summarize the results in exactly 3 professional bullet points.\n\n"
-    f"- TURF output: Best bundle size = {bundle_size}, Reach = {top_row['Reach (%)']}%\n"
-    f"- Recommended message sequence: {best_combo_labels}\n"
-    f"- Monte Carlo simulation confidence: {monte_carlo_confidence}\n\n"
-    "👉 Please respond in exactly 3 clear, standalone bullet points covering:\n"
-    "1. The best bundle size and why\n"
-    "2. The message combination in recommended sequence\n"
-    "3. Confidence in recommendation based on Monte Carlo simulation\n\n"
-    "Format:\n"
-    "• [Bundle Size] ...\n"
-    "• [Message Sequence] ...\n"
-    "• [Confidence] ..."
+        "You are a pharma marketing strategist. Based on the TURF analysis and Monte Carlo simulation, "
+        "summarize the recommended bundle strategy as three concise bullet points:\n\n"
+        f"- TURF output: Best bundle size = {bundle_size}, Reach = {row['Reach (%)']}%\n"
+        f"- Recommended message sequence: {best_combo_labels}\n"
+        f"- Monte Carlo simulation confidence: {monte_carlo_confidence}\n\n"
+        "👉 Please respond in exactly 3 clear, standalone bullet points covering:\n"
+        "1. The best bundle size and why\n"
+        "2. The message combination in recommended sequence\n"
+        "3. Confidence in recommendation based on Monte Carlo simulation\n\n"
+        "Format:\n"
+        "• [Bundle Size] ...\n"
+        "• [Message Sequence] ...\n"
+        "• [Confidence] ..."
     )
-
 
     try:
         key = st.secrets["openai_key"]
@@ -494,15 +501,13 @@ elif st.session_state.step == 8:
         gpt_final_bullets = f"⚠️ GPT recommendation failed: {e}"
         st.session_state["gpt_final_summary"] = gpt_final_bullets
 
-    # --- Display GPT Recommendation ---
+    # --- STEP 4: Display formatted bullets ---
     st.subheader("🤖 Final GPT Recommendation")
-
     bullets = [line.strip("•").strip("-").strip() for line in gpt_final_bullets.split("\n") if line.strip()]
     for bullet in bullets:
         st.markdown(f"- {bullet}")
 
-
-    # --- Generate TURF Chart for PPT ---
+    # --- STEP 5: Create chart for PPT ---
     fig, ax = plt.subplots(figsize=(6, 3))
     ax.plot(turf_summary["Messages in Bundle"], turf_summary["Reach (%)"], marker='o', color='green')
     ax.set_title("TURF Reach by Bundle Size")
@@ -514,7 +519,7 @@ elif st.session_state.step == 8:
     chart_buf.seek(0)
     plt.close()
 
-    # --- Build PPT ---
+    # --- STEP 6: Build PPT ---
     from pptx import Presentation
     from pptx.util import Inches
 
@@ -536,8 +541,8 @@ elif st.session_state.step == 8:
     slide = prs.slides.add_slide(prs.slide_layouts[6])
     tf2 = slide.shapes.add_textbox(Inches(0.5), Inches(1.5), Inches(8), Inches(4)).text_frame
     tf2.text = "🤖 GPT Final Recommendation:\n"
-    for line in gpt_final_bullets.split("\n"):
-        tf2.add_paragraph().text = line.strip()
+    for bullet in bullets:
+        tf2.add_paragraph().text = bullet
 
     ppt_buf = io.BytesIO()
     prs.save(ppt_buf)
