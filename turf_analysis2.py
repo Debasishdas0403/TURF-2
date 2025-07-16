@@ -429,16 +429,26 @@ elif st.session_state.step == 7:
         st.session_state.step += 1
         st.rerun()
 
+if original in [c for c, _ in counts]:
+    st.success("✅ Match with TURF result — stable")
+    st.session_state["monte_carlo_result"] = "✅ Match with TURF result — stable"
+else:
+    st.warning("⚠️ No match — result may not be stable")
+    st.session_state["monte_carlo_result"] = "⚠️ No match — result may not be stable"
+
+
 # ----------------------------
 # Step 8: Final Summary
 # ----------------------------
 
 elif st.session_state.step == 8:
     st.header("✅ Final Summary")
+
     turf_summary = st.session_state.turf_summary
     best_combos = st.session_state.best_combos
-    gpt_text = st.session_state.get("gpt_recommendation", "GPT recommendation not available.")
+    monte_carlo_confidence = st.session_state.get("monte_carlo_result", "Monte Carlo confidence not available.")
 
+    # --- TURF Output Display ---
     st.subheader("TURF Results")
     st.dataframe(turf_summary)
 
@@ -446,11 +456,43 @@ elif st.session_state.step == 8:
     for k, combo in best_combos.items():
         st.markdown(f"- **{k} messages** → {', '.join([m.split('_')[0] for m in combo])}")
 
-    # ✅ Show GPT Recommendation on screen
-    st.subheader("🤖 GPT Recommendation")
-    st.success(gpt_text)
+    # --- Generate GPT Prompt (Final Recommendations) ---
+    top_row = turf_summary.sort_values("Reach (%)", ascending=False).iloc[0]
+    bundle_size = int(top_row["Messages in Bundle"])
+    best_combo = best_combos[bundle_size]
+    best_combo_labels = ", ".join([m.split("_")[0] for m in best_combo])
 
-    # --- Generate Chart for PPT ---
+    gpt_prompt = (
+        "You are a pharma marketing strategist. Based on the TURF analysis and Monte Carlo simulation, "
+        "summarize the recommended bundle strategy as three concise bullet points:\n\n"
+        f"1. What is the best bundle size? (TURF output: {bundle_size} messages with {top_row['Reach (%)']}% reach)\n"
+        f"2. What is the ideal message sequence? (Top {bundle_size}: {best_combo_labels})\n"
+        f"3. What is the confidence in this recommendation? (Monte Carlo: {monte_carlo_confidence})\n\n"
+        "Give the response as 3 professional bullet points."
+    )
+
+    try:
+        key = st.secrets["openai_key"]
+        client = openai.OpenAI(api_key=key)
+        response = client.chat.completions.create(
+            model="gpt-4",
+            messages=[
+                {"role": "system", "content": "You are an expert in healthcare message optimization."},
+                {"role": "user", "content": gpt_prompt}
+            ],
+            temperature=0.3
+        )
+        gpt_final_bullets = response.choices[0].message.content.strip()
+        st.session_state["gpt_final_summary"] = gpt_final_bullets
+    except Exception as e:
+        gpt_final_bullets = f"⚠️ GPT recommendation failed: {e}"
+        st.session_state["gpt_final_summary"] = gpt_final_bullets
+
+    # --- Display GPT Recommendation ---
+    st.subheader("🤖 Final GPT Recommendation")
+    st.markdown(gpt_final_bullets)
+
+    # --- Generate TURF Chart for PPT ---
     fig, ax = plt.subplots(figsize=(6, 3))
     ax.plot(turf_summary["Messages in Bundle"], turf_summary["Reach (%)"], marker='o', color='green')
     ax.set_title("TURF Reach by Bundle Size")
@@ -462,7 +504,10 @@ elif st.session_state.step == 8:
     chart_buf.seek(0)
     plt.close()
 
-    # --- Create PPT ---
+    # --- Build PPT ---
+    from pptx import Presentation
+    from pptx.util import Inches
+
     prs = Presentation()
     slide = prs.slides.add_slide(prs.slide_layouts[0])
     slide.shapes.title.text = "TURF Analysis Summary"
@@ -480,8 +525,9 @@ elif st.session_state.step == 8:
 
     slide = prs.slides.add_slide(prs.slide_layouts[6])
     tf2 = slide.shapes.add_textbox(Inches(0.5), Inches(1.5), Inches(8), Inches(4)).text_frame
-    tf2.text = "🤖 GPT Recommendation:\n"
-    tf2.add_paragraph().text = gpt_text
+    tf2.text = "🤖 GPT Final Recommendation:\n"
+    for line in gpt_final_bullets.split("\n"):
+        tf2.add_paragraph().text = line.strip()
 
     ppt_buf = io.BytesIO()
     prs.save(ppt_buf)
@@ -498,6 +544,3 @@ elif st.session_state.step == 8:
         for k in list(st.session_state.keys()):
             del st.session_state[k]
         st.rerun()
-
-
-
