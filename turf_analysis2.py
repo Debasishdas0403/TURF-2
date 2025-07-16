@@ -430,11 +430,11 @@ elif st.session_state.step == 7:
         st.rerun()
 
     if original in [c for c, _ in counts]:
-    st.success("✅ Match with TURF result — stable")
-    st.session_state["monte_carlo_result"] = "✅ Match with TURF result — stable"
+        st.success("✅ Match with TURF result — stable")
+        st.session_state["monte_carlo_result"] = "✅ Match with TURF result — stable"
     else:
-    st.warning("⚠️ No match — result may not be stable")
-    st.session_state["monte_carlo_result"] = "⚠️ No match — result may not be stable"
+        st.warning("⚠️ No match — result may not be stable")
+        st.session_state["monte_carlo_result"] = "⚠️ No match — result may not be stable"
 
 
 # ----------------------------
