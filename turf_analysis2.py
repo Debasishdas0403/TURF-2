@@ -412,30 +412,27 @@ elif st.session_state.step == 7:
             wins.append(tuple(sorted(best)))
 
         counts = Counter(wins).most_common()
+
         st.subheader("Top Monte Carlo Combos")
         for combo, freq in counts[:5]:
             st.write(f"{', '.join([m.split('_')[0] for m in combo])} → {freq} wins")
 
-        # Match check
+        # ✅ Check if TURF combo matches simulation top combos
         original = tuple(sorted(st.session_state.best_combos[bundle]))
         if original in [c for c, _ in counts]:
             st.success("✅ Match with TURF result — stable")
+            st.session_state["monte_carlo_result"] = "✅ Match with TURF result — stable"
         else:
             st.warning("⚠️ No match — result may not be stable")
+            st.session_state["monte_carlo_result"] = "⚠️ No match — result may not be stable"
+
     else:
         st.info("Simulation skipped.")
+        st.session_state["monte_carlo_result"] = "Simulation skipped."
 
     if st.button("Next"):
         st.session_state.step += 1
         st.rerun()
-
-    if original in [c for c, _ in counts]:
-        st.success("✅ Match with TURF result — stable")
-        st.session_state["monte_carlo_result"] = "✅ Match with TURF result — stable"
-    else:
-        st.warning("⚠️ No match — result may not be stable")
-        st.session_state["monte_carlo_result"] = "⚠️ No match — result may not be stable"
-
 
 # ----------------------------
 # Step 8: Final Summary
@@ -499,7 +496,11 @@ elif st.session_state.step == 8:
 
     # --- Display GPT Recommendation ---
     st.subheader("🤖 Final GPT Recommendation")
-    st.markdown(gpt_final_bullets)
+
+    bullets = [line.strip("•").strip("-").strip() for line in gpt_final_bullets.split("\n") if line.strip()]
+    for bullet in bullets:
+        st.markdown(f"- {bullet}")
+
 
     # --- Generate TURF Chart for PPT ---
     fig, ax = plt.subplots(figsize=(6, 3))
