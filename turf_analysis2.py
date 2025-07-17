@@ -234,12 +234,12 @@ elif st.session_state.step == 5:
     df = st.session_state.effectiveness_df.copy()
     st.write(f"🧮 Total respondents: {df.shape[0]}")
 
-    method = st.radio("Choose binarization method", ["T2B", "Index (X% above mean)"])
+    method = st.radio("Choose binarization method", ["T2B", "Index (X% above mean)", "Segment Based Index (GMM)"])
 
     if method == "T2B":
         binarized_df = df.applymap(lambda x: 1 if x > 5 else 0)
-    else:
-        # 🎯 NEW: User input for % above mean (e.g., 5%)
+
+    elif method == "Index (X% above mean)":
         percent_above = st.number_input("Set Index Threshold (% above respondent mean)", min_value=0.0, max_value=100.0, value=5.0, step=0.5)
         multiplier = 1 + percent_above / 100
 
@@ -247,6 +247,34 @@ elif st.session_state.step == 5:
         for idx, row in df.iterrows():
             threshold = row.mean() * multiplier
             binarized_df.loc[idx] = row.apply(lambda x: 1 if x >= threshold else 0)
+
+    elif method == "Segment Based Index (GMM)":
+        from sklearn.mixture import GaussianMixture
+
+        st.markdown("📌 Segmenting respondents using GMM Clustering")
+        threshold_pct = st.number_input("Set threshold for segment index binarization (% above segment mean)", min_value=0.0, max_value=100.0, value=5.0, step=0.5)
+        threshold_index = 100 + threshold_pct
+        n_clusters = st.number_input("Number of clusters (segments)", min_value=2, max_value=10, value=4, step=1)
+
+        gmm = GaussianMixture(n_components=n_clusters, random_state=42)
+        segments = gmm.fit_predict(df)
+        df["Segment"] = segments
+
+        binarized_df = pd.DataFrame(0, index=df.index, columns=df.columns.drop("Segment"))
+
+        for msg in binarized_df.columns:
+            segment_means = df.groupby("Segment")[msg].mean()
+            for idx in df.index:
+                seg = df.loc[idx, "Segment"]
+                seg_mean = segment_means.loc[seg]
+                if seg_mean == 0:
+                    index_score = 0
+                else:
+                    index_score = (df.loc[idx, msg] / seg_mean) * 100
+                if index_score > threshold_index:
+                    binarized_df.loc[idx, msg] = 1
+
+        df.drop(columns=["Segment"], inplace=True)
 
     st.session_state.binarized_df = binarized_df
 
@@ -260,7 +288,6 @@ elif st.session_state.step == 5:
     fig, ax = plt.subplots(figsize=(10, 4))
     sns.barplot(data=percentage_ones, x="Message", y="Percentage", palette="Blues_d", ax=ax)
 
-    # Add % labels on top
     for patch in ax.patches:
         height = patch.get_height()
         ax.text(
