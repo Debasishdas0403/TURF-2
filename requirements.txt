@@ -7,3 +7,4 @@ seaborn
 openai
 openpyxl
 python-pptx
+scikit-learn
