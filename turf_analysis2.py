@@ -542,14 +542,24 @@ elif st.session_state.step == 7:
         for combo, freq in counts[:5]:
             st.write(f"{', '.join([m.split('_')[0] for m in combo])} → {freq} wins")
 
-        # ✅ Check if TURF combo matches simulation top combos
-        original = tuple(sorted(st.session_state.best_combos[bundle]))
-        if original in [c for c, _ in counts]:
+        # ✅ FIXED: Better matching logic using sets (order-insensitive)
+        original_set = set(st.session_state.best_combos[bundle])
+        monte_carlo_sets = [set(c) for c, _ in counts[:5]]  # Check top 5 combos
+
+        # Check if TURF combo matches any of the top 5 Monte Carlo combinations
+        match_found = any(original_set == combo_set for combo_set in monte_carlo_sets)
+
+        if match_found:
             st.success("✅ Match with TURF result — stable")
             st.session_state["monte_carlo_result"] = "✅ Match with TURF result — stable"
         else:
             st.warning("⚠️ No match — result may not be stable")
             st.session_state["monte_carlo_result"] = "⚠️ No match — result may not be stable"
+            
+            # Optional: Show debug info when no match
+            st.info(f"🔍 TURF combo: {', '.join([m.split('_')[0] for m in st.session_state.best_combos[bundle]])}")
+            st.info(f"🔍 Top Monte Carlo: {', '.join([m.split('_')[0] for m in list(counts[0][0])])}")
+
     else:
         st.info("Simulation skipped.")
         st.session_state["monte_carlo_result"] = "Simulation skipped."
