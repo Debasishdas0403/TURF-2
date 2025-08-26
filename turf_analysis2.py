@@ -210,14 +210,14 @@ elif st.session_state.step == 4:
         st.rerun()
 
 # ----------------------------
-# Step 5: Enhanced Binarization with GPT Recommendations
+# Step 5: Binarization with GPT Recommendations
 # ----------------------------
 elif st.session_state.step == 5:
     st.header("Step 5: Binarization")
     df = st.session_state.effectiveness_df.copy()
     st.write(f"🧮 Total respondents: {df.shape[0]}")
 
-    # --- NEW: GPT Recommendation for binarization method choice ---
+    # --- GPT Recommendation for binarization method choice ---
     if "binarization_gpt_recommendation" not in st.session_state:
         try:
             gpt_prompt = ("You are a data analytics expert specializing in survey analysis. "
@@ -242,9 +242,6 @@ elif st.session_state.step == 5:
         except Exception as e:
             st.session_state["binarization_gpt_recommendation"] = f"⚠️ GPT recommendation failed: {e}"
 
-    st.markdown("### 🤖 GPT Recommendation: Choose Binarization Method")
-    st.success(st.session_state["binarization_gpt_recommendation"])
-
     method = st.radio("Choose binarization method", ["T2B", "Index (X% above mean)", "Segment Based Index (GMM)"])
 
     # Method-specific parameters with GPT recommendations
@@ -254,7 +251,7 @@ elif st.session_state.step == 5:
     elif method == "Index (X% above mean)":
         percent_above = st.number_input("Set Index Threshold (% above respondent mean)", min_value=0.0, max_value=100.0, value=5.0, step=0.5)
 
-        # NEW: GPT recommendation for Index threshold
+        # GPT recommendation for Index threshold
         if "index_threshold_gpt" not in st.session_state:
             try:
                 gpt_index_prompt = ("You are a survey data expert. For the Index binarization method that classifies scores "
@@ -263,6 +260,8 @@ elif st.session_state.step == 5:
                                     "Explain in 2-3 sentences the impact of threshold selection on binarization sensitivity and specificity, "
                                     "and suggest a typical range for pharmaceutical message testing.")
                 
+                key = st.secrets["openai_key"]  # Define key again
+                client = openai.OpenAI(api_key=key)  # Define client again
                 response_index = client.chat.completions.create(
                     model="gpt-4",
                     messages=[
@@ -282,7 +281,7 @@ elif st.session_state.step == 5:
         threshold_pct = st.number_input("Set threshold for segment index binarization (% above segment mean)", min_value=0.0, max_value=100.0, value=5.0, step=0.5)
         n_clusters = st.number_input("Number of clusters (segments)", min_value=2, max_value=10, value=4, step=1)
 
-        # NEW: GPT recommendation for segment-based parameters
+        # GPT recommendation for segment-based parameters
         if "segment_params_gpt" not in st.session_state:
             try:
                 gpt_segment_prompt = ("You are a data scientist specializing in survey segmentation for pharmaceutical research. "
@@ -294,6 +293,8 @@ elif st.session_state.step == 5:
                                     "accounts for different response patterns across population segments. "
                                     "Format your response as 3 bullet points covering threshold selection, cluster number selection, and key considerations.")
                 
+                key = st.secrets["openai_key"]  # Define key again
+                client = openai.OpenAI(api_key=key)  # Define client again
                 response_segment = client.chat.completions.create(
                     model="gpt-4",
                     messages=[
@@ -309,7 +310,7 @@ elif st.session_state.step == 5:
         st.markdown("#### 🤖 GPT Recommended Segment Based Index Parameters")
         st.info(st.session_state["segment_params_gpt"])
 
-    # Execute binarization based on selected method (rest of your existing binarization logic)
+    # Execute binarization based on selected method
     if method == "T2B":
         binarized_df = df.applymap(lambda x: 1 if x > 5 else 0)
     elif method == "Index (X% above mean)":
@@ -342,7 +343,7 @@ elif st.session_state.step == 5:
         df.drop(columns=["Segment"], inplace=True)
 
     st.session_state.binarized_df = binarized_df
-    
+
     # --- Visualization ---
     st.subheader("📊 Message-wise Reach (% of 1s after binarization)")
     percentage_ones = (binarized_df.sum(axis=0) / binarized_df.shape[0] * 100).reset_index()
@@ -371,6 +372,10 @@ elif st.session_state.step == 5:
     if st.button("Next"):
         st.session_state.step += 1
         st.rerun()
+
+    # Move the GPT guidance to the bottom as requested
+    st.markdown("### 🤖 General Binarization Method Guide")
+    st.success(st.session_state.get("binarization_gpt_recommendation", "Loading guidance..."))
 
 # ----------------------------
 # Step 6: TURF Analysis
