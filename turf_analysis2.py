@@ -226,7 +226,7 @@ elif st.session_state.step == 4:
         st.rerun()
 
 # ----------------------------
-# Step 5: Binarization
+# Step 5: Binarization (with GPT Recommendation)
 # ----------------------------
 elif st.session_state.step == 5:
     st.header("Step 5: Binarization")
@@ -347,7 +347,7 @@ elif st.session_state.step == 5:
     if st.button("Next"):
         st.session_state.step += 1
         st.rerun()
-        
+      
 # ----------------------------
 # Step 6: TURF Analysis
 # ----------------------------
