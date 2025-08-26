@@ -102,7 +102,7 @@ elif st.session_state.step == 2:
                     {"role": "system", "content": "You are an expert in pharmaceutical message testing and analytics."},
                     {"role": "user", "content": prompt}
                 ],
-                temperature=0.1
+                temperature=0.2
             )
             st.session_state["gpt_recommendation"] = response.choices[0].message.content
         except Exception as e:
