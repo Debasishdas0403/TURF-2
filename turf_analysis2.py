@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 # Optional: for GPT (enable only if you have API key)
 try:
     import openai
-    openai.api_key = st.secrets["openai_key"]  # or hardcode your key
+    openai.api_key = st.secrets["openai_key"] # or hardcode your key
 except:
     pass
 
@@ -118,10 +118,18 @@ elif st.session_state.step == 2:
 
     # User selection
     method = st.radio("Choose Effectiveness Method", ["AM", "GM"])
-    if st.button("Next"):
-        st.session_state.method = method
-        st.session_state.step += 1
-        st.rerun()
+
+    # Back/Next buttons for Step 2
+    col1, col2 = st.columns([1, 1])
+    with col1:
+        if st.button("Back", key="back_2"):
+            st.session_state.step -= 1
+            st.rerun()
+    with col2:
+        if st.button("Next", key="next_2"):
+            st.session_state.method = method
+            st.session_state.step += 1
+            st.rerun()
 
 # ----------------------------
 # Step 3: Effectiveness Score
@@ -146,7 +154,7 @@ elif st.session_state.step == 3:
     avg_scores["Message"] = avg_scores["Message"].str.replace("_Effectiveness", "", regex=False)
     # Sort in descending order
     avg_scores = avg_scores.sort_values(by="Average Effectiveness", ascending=False)
-    sorted_messages = avg_scores["Message"].tolist()  # Keep sorted order for plotting
+    sorted_messages = avg_scores["Message"].tolist() # Keep sorted order for plotting
 
     # Plot
     fig, ax = plt.subplots(figsize=(10, 4))
@@ -169,9 +177,16 @@ elif st.session_state.step == 3:
     plt.xticks(rotation=45)
     st.pyplot(fig)
 
-    if st.button("Next"):
-        st.session_state.step += 1
-        st.rerun()
+    # Back/Next buttons for Step 3
+    col1, col2 = st.columns([1, 1])
+    with col1:
+        if st.button("Back", key="back_3"):
+            st.session_state.step -= 1
+            st.rerun()
+    with col2:
+        if st.button("Next", key="next_3"):
+            st.session_state.step += 1
+            st.rerun()
 
 # ----------------------------
 # Step 4: Flatliner Removal
@@ -198,16 +213,22 @@ elif st.session_state.step == 4:
     else:
         st.info(f"Retained all {original_df.shape[0]} respondents (no flatliners removed).")
 
-    # Only apply filtering on button click
-    if st.button("Next"):
-        if option == "Yes":
-            st.session_state.effectiveness_df = retained_df
-        else:
-            st.session_state.effectiveness_df = original_df
-        # Cleanup original store
-        del st.session_state.original_effectiveness_df
-        st.session_state.step += 1
-        st.rerun()
+    # Back/Next buttons for Step 4
+    col1, col2 = st.columns([1, 1])
+    with col1:
+        if st.button("Back", key="back_4"):
+            st.session_state.step -= 1
+            st.rerun()
+    with col2:
+        if st.button("Next", key="next_4"):
+            if option == "Yes":
+                st.session_state.effectiveness_df = retained_df
+            else:
+                st.session_state.effectiveness_df = original_df
+            # Cleanup original store
+            del st.session_state.original_effectiveness_df
+            st.session_state.step += 1
+            st.rerun()
 
 # ----------------------------
 # Step 5: Binarization with GPT Recommendations
@@ -227,7 +248,7 @@ elif st.session_state.step == 5:
                           "3) Segment Based Index (GMM) - Uses Gaussian Mixture Model clustering with segment-specific thresholds\n\n"
                           "Explain the criteria for choosing each method and scenarios where each is best suited. "
                           "Provide your response in 3 concise bullet points, one for each method.")
-            
+
             key = st.secrets["openai_key"]
             client = openai.OpenAI(api_key=key)
             response = client.chat.completions.create(
@@ -247,7 +268,7 @@ elif st.session_state.step == 5:
     # Method-specific parameters with GPT recommendations
     if method == "T2B":
         st.info("**T2B Method:** Converts effectiveness scores above 5 to 1, else 0. Simple and interpretable for Likert scale data.")
-        
+
     elif method == "Index (X% above mean)":
         percent_above = st.number_input("Set Index Threshold (% above respondent mean)", min_value=0.0, max_value=100.0, value=5.0, step=0.5)
 
@@ -256,7 +277,7 @@ elif st.session_state.step == 5:
             try:
                 gpt_index_prompt = ("For pharmaceutical message testing using Index binarization, recommend a specific threshold percentage between 0-15% above each respondent's personal mean. "
                                     "Provide one specific percentage with brief rationale in 1-2 sentences.")
-                
+
                 key = st.secrets["openai_key"]
                 client = openai.OpenAI(api_key=key)
                 response_index = client.chat.completions.create(
@@ -284,7 +305,7 @@ elif st.session_state.step == 5:
                 gpt_segment_prompt = ("For pharmaceutical Segment Based Index binarization using GMM clustering, "
                                     "recommend: 1) threshold percentage (0-15% above segment mean), and 2) number of clusters (2-10). "
                                     "Provide specific recommendations in 2 brief sentences.")
-                
+
                 key = st.secrets["openai_key"]
                 client = openai.OpenAI(api_key=key)
                 response_segment = client.chat.completions.create(
@@ -314,12 +335,12 @@ elif st.session_state.step == 5:
     elif method == "Segment Based Index (GMM)":
         from sklearn.mixture import GaussianMixture
         st.markdown("📌 Segmenting respondents using GMM Clustering")
-        
+
         threshold_index = 100 + threshold_pct
         gmm = GaussianMixture(n_components=n_clusters, random_state=42)
         segments = gmm.fit_predict(df)
         df["Segment"] = segments
-        
+
         binarized_df = pd.DataFrame(0, index=df.index, columns=df.columns.drop("Segment"))
         for msg in binarized_df.columns:
             segment_means = df.groupby("Segment")[msg].mean()
@@ -361,9 +382,16 @@ elif st.session_state.step == 5:
     plt.xticks(rotation=45)
     st.pyplot(fig)
 
-    if st.button("Next"):
-        st.session_state.step += 1
-        st.rerun()
+    # Back/Next buttons for Step 5
+    col1, col2 = st.columns([1, 1])
+    with col1:
+        if st.button("Back", key="back_5"):
+            st.session_state.step -= 1
+            st.rerun()
+    with col2:
+        if st.button("Next", key="next_5"):
+            st.session_state.step += 1
+            st.rerun()
 
     # General GPT guidance moved to bottom
     st.markdown("### 🤖 General Binarization Method Guide")
@@ -451,10 +479,10 @@ elif st.session_state.step == 6:
     # --- 🤖 GPT Recommendation ---
     try:
         prompt = "You are a pharma messaging strategy expert. Below is a TURF analysis output showing reach by number of messages in a bundle. Based on this, suggest the optimal number of messages (one single number) that balances reach and message overload. Justify in 2-3 sentences why this number is optimal.\n\n"
-        
+
         for _, row in turf_summary.iterrows():
             prompt += f"{int(row['Messages in Bundle'])} messages → Reach: {row['Reach (%)']}%, Avg Freq: {row['Avg Frequency']}, Best Combo: {row['Best Combination']}\n"
-        
+
         prompt += "\nPlease recommend ONE optimal number of messages to proceed with."
 
         key = st.secrets["openai_key"]
@@ -467,46 +495,53 @@ elif st.session_state.step == 6:
             ],
             temperature=0.3
         )
-        
+
         gpt_recommendation = response.choices[0].message.content
         st.markdown("### 🤖 GPT Recommendation")
         st.success(gpt_recommendation)
         st.session_state["gpt_recommendation"] = gpt_recommendation
-        
+
     except Exception as e:
         st.warning(f"⚠️ GPT recommendation skipped: {e}")
 
-    if st.button("Next"):
-        st.session_state.step += 1
-        st.rerun()
+    # Back/Next buttons for Step 6
+    col1, col2 = st.columns([1, 1])
+    with col1:
+        if st.button("Back", key="back_6"):
+            st.session_state.step -= 1
+            st.rerun()
+    with col2:
+        if st.button("Next", key="next_6"):
+            st.session_state.step += 1
+            st.rerun()
 
 # ----------------------------
 # Step 7: Monte Carlo Simulation
 # ----------------------------
 elif st.session_state.step == 7:
     st.header("Step 7: Monte Carlo Simulation")
-    
+
     run_sim = st.radio("Run simulation?", ["Yes", "No"])
 
     if run_sim == "Yes":
         bundle = st.slider("Bundle size", 1, 5, 3)
         iterations = st.slider("Iterations", 10, 100, 25)
-        
+
         df = st.session_state.binarized_df
         wins = []
-        
+
         for i in range(iterations):
             sample = df.sample(frac=0.8, replace=False, random_state=i)
             combos = list(itertools.combinations(df.columns, bundle))
             best = max(combos, key=lambda c: (sample[list(c)].sum(axis=1) > 0).mean())
             wins.append(tuple(sorted(best)))
-        
+
         counts = Counter(wins).most_common()
-        
+
         st.subheader("Top Monte Carlo Combos")
         for combo, freq in counts[:5]:
             st.write(f"{', '.join([m.split('_')[0] for m in combo])} → {freq} wins")
-        
+
         # ✅ Check if TURF combo matches simulation top combos
         original = tuple(sorted(st.session_state.best_combos[bundle]))
         if original in [c for c, _ in counts]:
@@ -519,16 +554,23 @@ elif st.session_state.step == 7:
         st.info("Simulation skipped.")
         st.session_state["monte_carlo_result"] = "Simulation skipped."
 
-    if st.button("Next"):
-        st.session_state.step += 1
-        st.rerun()
+    # Back/Next buttons for Step 7
+    col1, col2 = st.columns([1, 1])
+    with col1:
+        if st.button("Back", key="back_7"):
+            st.session_state.step -= 1
+            st.rerun()
+    with col2:
+        if st.button("Next", key="next_7"):
+            st.session_state.step += 1
+            st.rerun()
 
 # ----------------------------
 # Step 8: Final Summary
 # ----------------------------
 elif st.session_state.step == 8:
     st.header("✅ Final Summary")
-    
+
     turf_summary = st.session_state.turf_summary
     best_combos = st.session_state.best_combos
     monte_carlo_confidence = st.session_state.get("monte_carlo_result", "Monte Carlo confidence not available.")
@@ -545,7 +587,7 @@ elif st.session_state.step == 8:
     import re
     raw_gpt_text = st.session_state.get("gpt_recommendation", "")
     bundle_size_match = re.search(r'\b(\d)\s*messages?\b', raw_gpt_text)
-    
+
     if bundle_size_match:
         bundle_size = int(bundle_size_match.group(1))
     else:
@@ -584,10 +626,10 @@ elif st.session_state.step == 8:
             ],
             temperature=0.3
         )
-        
+
         gpt_final_bullets = response.choices[0].message.content.strip()
         st.session_state["gpt_final_summary"] = gpt_final_bullets
-        
+
     except Exception as e:
         gpt_final_bullets = f"⚠️ GPT recommendation failed: {e}"
         st.session_state["gpt_final_summary"] = gpt_final_bullets
@@ -605,7 +647,7 @@ elif st.session_state.step == 8:
     ax.set_xlabel("Messages in Bundle")
     ax.set_ylabel("Reach (%)")
     plt.tight_layout()
-    
+
     chart_buf = io.BytesIO()
     plt.savefig(chart_buf, format='png')
     chart_buf.seek(0)
@@ -647,7 +689,14 @@ elif st.session_state.step == 8:
         mime="application/vnd.openxmlformats-officedocument.presentationml.presentation"
     )
 
-    if st.button("🔁 Restart"):
-        for k in list(st.session_state.keys()):
-            del st.session_state[k]
-        st.rerun()
+    # Back button and Restart for Step 8
+    col1, col2 = st.columns([1, 1])
+    with col1:
+        if st.button("Back", key="back_8"):
+            st.session_state.step -= 1
+            st.rerun()
+    with col2:
+        if st.button("🔁 Restart", key="restart_8"):
+            for k in list(st.session_state.keys()):
+                del st.session_state[k]
+            st.rerun()
