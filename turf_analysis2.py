@@ -251,21 +251,19 @@ elif st.session_state.step == 5:
     elif method == "Index (X% above mean)":
         percent_above = st.number_input("Set Index Threshold (% above respondent mean)", min_value=0.0, max_value=100.0, value=5.0, step=0.5)
 
-        # GPT recommendation for Index threshold
+        # NEW: Shorter GPT recommendation for Index threshold
         if "index_threshold_gpt" not in st.session_state:
             try:
-                gpt_index_prompt = ("You are a survey data expert. For the Index binarization method that classifies scores "
-                                    "based on a percentage above each respondent's individual average, recommend an optimal threshold percentage. "
-                                    "Consider that this method accounts for individual response patterns and reduces bias from scale usage differences. "
-                                    "Explain in 2-3 sentences the impact of threshold selection on binarization sensitivity and specificity, "
-                                    "and suggest a typical range for pharmaceutical message testing.")
+                gpt_index_prompt = ("For Index binarization in pharmaceutical message testing, recommend a specific threshold percentage between 0-15% above each respondent's personal mean. "
+                                    "Consider: lower thresholds (0-5%) capture subtle preferences but may include noise, higher thresholds (10-15%) focus on standout messages but may miss nuanced preferences. "
+                                    "Provide one specific percentage recommendation with brief rationale in 2 sentences.")
                 
-                key = st.secrets["openai_key"]  # Define key again
-                client = openai.OpenAI(api_key=key)  # Define client again
+                key = st.secrets["openai_key"]
+                client = openai.OpenAI(api_key=key)
                 response_index = client.chat.completions.create(
                     model="gpt-4",
                     messages=[
-                        {"role": "system", "content": "You are an expert in survey data analytics and pharmaceutical market research."},
+                        {"role": "system", "content": "You are an expert in pharmaceutical survey analytics. Always recommend thresholds between 0-15%."},
                         {"role": "user", "content": gpt_index_prompt}
                     ],
                     temperature=0.3
@@ -284,21 +282,16 @@ elif st.session_state.step == 5:
         # GPT recommendation for segment-based parameters
         if "segment_params_gpt" not in st.session_state:
             try:
-                gpt_segment_prompt = ("You are a data scientist specializing in survey segmentation for pharmaceutical research. "
-                                    "For the Segment Based Index binarization method that uses Gaussian Mixture Model clustering, "
-                                    "provide recommendations for:\n"
-                                    "1) Optimal threshold percentage above the segment mean\n"
-                                    "2) Appropriate number of clusters/segments\n\n"
-                                    "Explain the trade-offs involved in choosing these parameters, considering that this method "
-                                    "accounts for different response patterns across population segments. "
-                                    "Format your response as 3 bullet points covering threshold selection, cluster number selection, and key considerations.")
+                gpt_segment_prompt = ("For Segment Based Index binarization in pharmaceutical research using GMM clustering, "
+                                    "recommend optimal values for: 1) threshold percentage above segment mean, and 2) number of clusters. "
+                                    "Provide specific recommendations with brief rationale in 3 bullet points.")
                 
-                key = st.secrets["openai_key"]  # Define key again
-                client = openai.OpenAI(api_key=key)  # Define client again
+                key = st.secrets["openai_key"]
+                client = openai.OpenAI(api_key=key)
                 response_segment = client.chat.completions.create(
                     model="gpt-4",
                     messages=[
-                        {"role": "system", "content": "You are an expert in data science and pharmaceutical survey analytics."},
+                        {"role": "system", "content": "You are an expert in pharmaceutical survey analytics and clustering."},
                         {"role": "user", "content": gpt_segment_prompt}
                     ],
                     temperature=0.3
@@ -373,7 +366,7 @@ elif st.session_state.step == 5:
         st.session_state.step += 1
         st.rerun()
 
-    # Move the GPT guidance to the bottom as requested
+    # General GPT guidance moved to bottom
     st.markdown("### 🤖 General Binarization Method Guide")
     st.success(st.session_state.get("binarization_gpt_recommendation", "Loading guidance..."))
 
