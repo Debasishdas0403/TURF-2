@@ -309,7 +309,7 @@ elif st.session_state.step == 5:
         st.markdown("#### 🤖 GPT Recommended Segment Based Index Parameters")
         st.info(st.session_state["segment_params_gpt"])
 
-    # Execute binarization based on selected method
+    # Execute binarization based on selected method (rest of your existing binarization logic)
     if method == "T2B":
         binarized_df = df.applymap(lambda x: 1 if x > 5 else 0)
     elif method == "Index (X% above mean)":
@@ -342,7 +342,7 @@ elif st.session_state.step == 5:
         df.drop(columns=["Segment"], inplace=True)
 
     st.session_state.binarized_df = binarized_df
-
+    
     # --- Visualization ---
     st.subheader("📊 Message-wise Reach (% of 1s after binarization)")
     percentage_ones = (binarized_df.sum(axis=0) / binarized_df.shape[0] * 100).reset_index()
