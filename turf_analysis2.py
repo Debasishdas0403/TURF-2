@@ -236,6 +236,45 @@ elif st.session_state.step == 5:
 
     method = st.radio("Choose binarization method", ["T2B", "Index (X% above mean)", "Segment Based Index (GMM)"])
 
+    # --- 🤖 GPT Recommendation for Method + Parameters ---
+    if "binarization_gpt" not in st.session_state:
+        try:
+            # Build a prompt with some context
+            prompt = (
+                "You are a pharma analytics expert. We are preparing data for TURF analysis "
+                "by converting effectiveness scores into binary values (0/1). "
+                "There are three possible binarization methods:\n"
+                "1. T2B (Top-2-Box > 5 = 1, else 0)\n"
+                "2. Index (respondent-level threshold, X% above mean)\n"
+                "3. Segment Based Index (using Gaussian Mixture clustering, "
+                "then applying threshold % above segment mean).\n\n"
+                f"We have {df.shape[0]} respondents and {df.shape[1]} messages. "
+                "Please recommend:\n"
+                "1. Which binarization method is most suitable in this case\n"
+                "2. Suggested parameter values (e.g., threshold % for Index, "
+                "threshold % and number of clusters for Segment Based).\n"
+                "Keep the answer concise in 2–3 sentences."
+            )
+
+            key = st.secrets["openai_key"]
+            client = openai.OpenAI(api_key=key)
+            response = client.chat.completions.create(
+                model="gpt-4",
+                messages=[
+                    {"role": "system", "content": "You are an expert in healthcare message testing analytics."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.2
+            )
+            st.session_state["binarization_gpt"] = response.choices[0].message.content
+        except Exception as e:
+            st.session_state["binarization_gpt"] = f"⚠️ GPT recommendation failed: {e}"
+
+    # Always display recommendation
+    st.markdown("### 🤖 GPT Recommendation for Binarization")
+    st.info(st.session_state["binarization_gpt"])
+
+    # --- User executes chosen method ---
     if method == "T2B":
         binarized_df = df.applymap(lambda x: 1 if x > 5 else 0)
 
@@ -308,7 +347,7 @@ elif st.session_state.step == 5:
     if st.button("Next"):
         st.session_state.step += 1
         st.rerun()
-
+        
 # ----------------------------
 # Step 6: TURF Analysis
 # ----------------------------
