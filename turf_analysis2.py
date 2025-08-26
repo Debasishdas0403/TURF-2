@@ -251,19 +251,18 @@ elif st.session_state.step == 5:
     elif method == "Index (X% above mean)":
         percent_above = st.number_input("Set Index Threshold (% above respondent mean)", min_value=0.0, max_value=100.0, value=5.0, step=0.5)
 
-        # NEW: Shorter GPT recommendation for Index threshold
+        # Concise GPT recommendation for Index threshold (0-15% range)
         if "index_threshold_gpt" not in st.session_state:
             try:
-                gpt_index_prompt = ("For Index binarization in pharmaceutical message testing, recommend a specific threshold percentage between 0-15% above each respondent's personal mean. "
-                                    "Consider: lower thresholds (0-5%) capture subtle preferences but may include noise, higher thresholds (10-15%) focus on standout messages but may miss nuanced preferences. "
-                                    "Provide one specific percentage recommendation with brief rationale in 2 sentences.")
+                gpt_index_prompt = ("For pharmaceutical message testing using Index binarization, recommend a specific threshold percentage between 0-15% above each respondent's personal mean. "
+                                    "Provide one specific percentage with brief rationale in 1-2 sentences.")
                 
                 key = st.secrets["openai_key"]
                 client = openai.OpenAI(api_key=key)
                 response_index = client.chat.completions.create(
                     model="gpt-4",
                     messages=[
-                        {"role": "system", "content": "You are an expert in pharmaceutical survey analytics. Always recommend thresholds between 0-15%."},
+                        {"role": "system", "content": "You are an expert in pharmaceutical survey analytics. Always recommend thresholds between 0-15%. Be concise."},
                         {"role": "user", "content": gpt_index_prompt}
                     ],
                     temperature=0.3
@@ -279,19 +278,19 @@ elif st.session_state.step == 5:
         threshold_pct = st.number_input("Set threshold for segment index binarization (% above segment mean)", min_value=0.0, max_value=100.0, value=5.0, step=0.5)
         n_clusters = st.number_input("Number of clusters (segments)", min_value=2, max_value=10, value=4, step=1)
 
-        # GPT recommendation for segment-based parameters
+        # Concise GPT recommendation for segment-based parameters (0-15% threshold range)
         if "segment_params_gpt" not in st.session_state:
             try:
-                gpt_segment_prompt = ("For Segment Based Index binarization in pharmaceutical research using GMM clustering, "
-                                    "recommend optimal values for: 1) threshold percentage above segment mean, and 2) number of clusters. "
-                                    "Provide specific recommendations with brief rationale in 3 bullet points.")
+                gpt_segment_prompt = ("For pharmaceutical Segment Based Index binarization using GMM clustering, "
+                                    "recommend: 1) threshold percentage (0-15% above segment mean), and 2) number of clusters (2-10). "
+                                    "Provide specific recommendations in 2 brief sentences.")
                 
                 key = st.secrets["openai_key"]
                 client = openai.OpenAI(api_key=key)
                 response_segment = client.chat.completions.create(
                     model="gpt-4",
                     messages=[
-                        {"role": "system", "content": "You are an expert in pharmaceutical survey analytics and clustering."},
+                        {"role": "system", "content": "You are an expert in pharmaceutical survey analytics. Keep threshold recommendations between 0-15%. Be concise."},
                         {"role": "user", "content": gpt_segment_prompt}
                     ],
                     temperature=0.3
