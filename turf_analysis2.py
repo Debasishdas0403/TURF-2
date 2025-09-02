@@ -80,7 +80,6 @@ elif st.session_state.step == 2:
                 "Geometric Mean to combine Differentiated, Believable, and Motivating scores "
                 "for each message.\n\n"
             )
-
             for name, group in grouped_summary:
                 prompt += f"\n--- {name.upper()} ---\n"
                 for _, row in group.iterrows():
@@ -88,12 +87,10 @@ elif st.session_state.step == 2:
                         f"{row['Message']}: Mean={row['Mean']}, "
                         f"StdDev={row['StdDev']}, Skew={row['Skew']}\n"
                     )
-
             prompt += (
                 "\nPlease recommend whether Arithmetic Mean or Geometric Mean is better and why, "
                 "in 2-3 sentences."
             )
-
             key = st.secrets["openai_key"]
             client = openai.OpenAI(api_key=key)
             response = client.chat.completions.create(
@@ -193,7 +190,6 @@ elif st.session_state.step == 3:
 # ----------------------------
 elif st.session_state.step == 4:
     st.header("Step 4: Remove Flatliners?")
-
     # Always work from original unfiltered effectiveness_df
     original_df = st.session_state.get("original_effectiveness_df")
     if original_df is None:
@@ -231,10 +227,10 @@ elif st.session_state.step == 4:
             st.rerun()
 
 # ----------------------------
-# Step 5: Binarization with GPT Recommendations
+# Step 5: Message Rating Normalization with GPT Recommendations
 # ----------------------------
 elif st.session_state.step == 5:
-    st.header("Step 5: Binarization")
+    st.header("Step 5: Message Rating Normalization")
     df = st.session_state.effectiveness_df.copy()
     st.write(f"🧮 Total respondents: {df.shape[0]}")
 
@@ -248,7 +244,6 @@ elif st.session_state.step == 5:
                           "3) Segment Based Index (GMM) - Uses Gaussian Mixture Model clustering with segment-specific thresholds\n\n"
                           "Explain the criteria for choosing each method and scenarios where each is best suited. "
                           "Provide your response in 3 concise bullet points, one for each method.")
-
             key = st.secrets["openai_key"]
             client = openai.OpenAI(api_key=key)
             response = client.chat.completions.create(
@@ -263,21 +258,18 @@ elif st.session_state.step == 5:
         except Exception as e:
             st.session_state["binarization_gpt_recommendation"] = f"⚠️ GPT recommendation failed: {e}"
 
-    method = st.radio("Choose binarization method", ["T2B", "Index (X% above mean)", "Segment Based Index (GMM)"])
+    method = st.radio("Choose binarization method", ["T2B", "Individual Based Index (X% above mean)", "Segment Based Index (GMM)"])
 
     # Method-specific parameters with GPT recommendations
     if method == "T2B":
         st.info("**T2B Method:** Converts effectiveness scores above 5 to 1, else 0. Simple and interpretable for Likert scale data.")
-
-    elif method == "Index (X% above mean)":
+    elif method == "Individual Based Index (X% above mean)":
         percent_above = st.number_input("Set Index Threshold (% above respondent mean)", min_value=0.0, max_value=100.0, value=5.0, step=0.5)
-
         # Concise GPT recommendation for Index threshold (0-15% range)
         if "index_threshold_gpt" not in st.session_state:
             try:
                 gpt_index_prompt = ("For pharmaceutical message testing using Index binarization, recommend a specific threshold percentage between 0-15% above each respondent's personal mean. "
                                     "Provide one specific percentage with brief rationale in 1-2 sentences.")
-
                 key = st.secrets["openai_key"]
                 client = openai.OpenAI(api_key=key)
                 response_index = client.chat.completions.create(
@@ -291,21 +283,17 @@ elif st.session_state.step == 5:
                 st.session_state["index_threshold_gpt"] = response_index.choices[0].message.content
             except Exception as e:
                 st.session_state["index_threshold_gpt"] = f"⚠️ GPT recommendation failed: {e}"
-
         st.markdown("#### 🤖 GPT Recommended Index Threshold")
         st.info(st.session_state["index_threshold_gpt"])
-
     elif method == "Segment Based Index (GMM)":
         threshold_pct = st.number_input("Set threshold for segment index binarization (% above segment mean)", min_value=0.0, max_value=100.0, value=5.0, step=0.5)
         n_clusters = st.number_input("Number of clusters (segments)", min_value=2, max_value=10, value=4, step=1)
-
         # Concise GPT recommendation for segment-based parameters (0-15% threshold range)
         if "segment_params_gpt" not in st.session_state:
             try:
                 gpt_segment_prompt = ("For pharmaceutical Segment Based Index binarization using GMM clustering, "
-                                    "recommend: 1) threshold percentage (0-15% above segment mean), and 2) number of clusters (2-10). "
-                                    "Provide specific recommendations in 2 brief sentences.")
-
+                                      "recommend: 1) threshold percentage (0-15% above segment mean), and 2) number of clusters (2-10). "
+                                      "Provide specific recommendations in 2 brief sentences.")
                 key = st.secrets["openai_key"]
                 client = openai.OpenAI(api_key=key)
                 response_segment = client.chat.completions.create(
@@ -319,14 +307,13 @@ elif st.session_state.step == 5:
                 st.session_state["segment_params_gpt"] = response_segment.choices[0].message.content
             except Exception as e:
                 st.session_state["segment_params_gpt"] = f"⚠️ GPT recommendation failed: {e}"
-
         st.markdown("#### 🤖 GPT Recommended Segment Based Index Parameters")
         st.info(st.session_state["segment_params_gpt"])
 
     # Execute binarization based on selected method
     if method == "T2B":
         binarized_df = df.applymap(lambda x: 1 if x > 5 else 0)
-    elif method == "Index (X% above mean)":
+    elif method == "Individual Based Index (X% above mean)":
         multiplier = 1 + percent_above / 100
         binarized_df = df.copy()
         for idx, row in df.iterrows():
@@ -335,12 +322,10 @@ elif st.session_state.step == 5:
     elif method == "Segment Based Index (GMM)":
         from sklearn.mixture import GaussianMixture
         st.markdown("📌 Segmenting respondents using GMM Clustering")
-
         threshold_index = 100 + threshold_pct
         gmm = GaussianMixture(n_components=n_clusters, random_state=42)
         segments = gmm.fit_predict(df)
         df["Segment"] = segments
-
         binarized_df = pd.DataFrame(0, index=df.index, columns=df.columns.drop("Segment"))
         for msg in binarized_df.columns:
             segment_means = df.groupby("Segment")[msg].mean()
@@ -404,7 +389,6 @@ elif st.session_state.step == 6:
     st.header("Step 6: TURF Analysis (Reach by Bundle Size)")
     df = st.session_state.binarized_df
     message_reach = df.sum() / df.shape[0]
-
     turf_summary_rows = []
     best_combos = {}
 
@@ -413,29 +397,24 @@ elif st.session_state.step == 6:
         greedy_combo = []
         remaining = list(df.columns)
         turf_input_df = df.copy()
-
         for _ in range(k):
             best_var = None
             best_reach = -1
             best_freq = -1
-
             for var in remaining:
                 test_combo = greedy_combo + [var]
                 test_df = turf_input_df[test_combo]
                 respondent_reach = (test_df.sum(axis=1) > 0)
                 reach = respondent_reach.mean()
-
                 # ✅ Avg frequency among reached respondents
                 if respondent_reach.sum() > 0:
                     freq = test_df[respondent_reach].sum(axis=1).mean()
                 else:
                     freq = 0
-
                 if reach > best_reach or (reach == best_reach and freq > best_freq):
                     best_var = var
                     best_reach = reach
                     best_freq = freq
-
             greedy_combo.append(best_var)
             remaining.remove(best_var)
 
@@ -455,7 +434,6 @@ elif st.session_state.step == 6:
             "Avg Frequency": avg_freq,
             "Best Combination": cleaned_combo
         })
-
         best_combos[k] = sorted_combo
 
     # Final summary table
@@ -479,10 +457,8 @@ elif st.session_state.step == 6:
     # --- 🤖 GPT Recommendation ---
     try:
         prompt = "You are a pharma messaging strategy expert. Below is a TURF analysis output showing reach by number of messages in a bundle. Based on this, suggest the optimal number of messages (one single number) that balances reach and message overload. Justify in 2-3 sentences why this number is optimal.\n\n"
-
         for _, row in turf_summary.iterrows():
             prompt += f"{int(row['Messages in Bundle'])} messages → Reach: {row['Reach (%)']}%, Avg Freq: {row['Avg Frequency']}, Best Combo: {row['Best Combination']}\n"
-
         prompt += "\nPlease recommend ONE optimal number of messages to proceed with."
 
         key = st.secrets["openai_key"]
@@ -495,12 +471,10 @@ elif st.session_state.step == 6:
             ],
             temperature=0.3
         )
-
         gpt_recommendation = response.choices[0].message.content
         st.markdown("### 🤖 GPT Recommendation")
         st.success(gpt_recommendation)
         st.session_state["gpt_recommendation"] = gpt_recommendation
-
     except Exception as e:
         st.warning(f"⚠️ GPT recommendation skipped: {e}")
 
@@ -520,16 +494,14 @@ elif st.session_state.step == 6:
 # ----------------------------
 elif st.session_state.step == 7:
     st.header("Step 7: Monte Carlo Simulation")
-
     run_sim = st.radio("Run simulation?", ["Yes", "No"])
 
     if run_sim == "Yes":
         bundle = st.slider("Bundle size", 1, 5, 3)
         iterations = st.slider("Iterations", 10, 100, 25)
-
         df = st.session_state.binarized_df
-        wins = []
 
+        wins = []
         for i in range(iterations):
             sample = df.sample(frac=0.8, replace=False, random_state=i)
             combos = list(itertools.combinations(df.columns, bundle))
@@ -544,7 +516,7 @@ elif st.session_state.step == 7:
 
         # ✅ FIXED: Better matching logic using sets (order-insensitive)
         original_set = set(st.session_state.best_combos[bundle])
-        monte_carlo_sets = [set(c) for c, _ in counts[:5]]  # Check top 5 combos
+        monte_carlo_sets = [set(c) for c, _ in counts[:5]] # Check top 5 combos
 
         # Check if TURF combo matches any of the top 5 Monte Carlo combinations
         match_found = any(original_set == combo_set for combo_set in monte_carlo_sets)
@@ -555,11 +527,10 @@ elif st.session_state.step == 7:
         else:
             st.warning("⚠️ No match — result may not be stable")
             st.session_state["monte_carlo_result"] = "⚠️ No match — result may not be stable"
-            
-            # Optional: Show debug info when no match
-            st.info(f"🔍 TURF combo: {', '.join([m.split('_')[0] for m in st.session_state.best_combos[bundle]])}")
-            st.info(f"🔍 Top Monte Carlo: {', '.join([m.split('_')[0] for m in list(counts[0][0])])}")
 
+        # Optional: Show debug info when no match
+        st.info(f"🔍 TURF combo: {', '.join([m.split('_')[0] for m in st.session_state.best_combos[bundle]])}")
+        st.info(f"🔍 Top Monte Carlo: {', '.join([m.split('_')[0] for m in list(counts[0][0])])}")
     else:
         st.info("Simulation skipped.")
         st.session_state["monte_carlo_result"] = "Simulation skipped."
@@ -580,7 +551,6 @@ elif st.session_state.step == 7:
 # ----------------------------
 elif st.session_state.step == 8:
     st.header("✅ Final Summary")
-
     turf_summary = st.session_state.turf_summary
     best_combos = st.session_state.best_combos
     monte_carlo_confidence = st.session_state.get("monte_carlo_result", "Monte Carlo confidence not available.")
@@ -636,10 +606,8 @@ elif st.session_state.step == 8:
             ],
             temperature=0.3
         )
-
         gpt_final_bullets = response.choices[0].message.content.strip()
         st.session_state["gpt_final_summary"] = gpt_final_bullets
-
     except Exception as e:
         gpt_final_bullets = f"⚠️ GPT recommendation failed: {e}"
         st.session_state["gpt_final_summary"] = gpt_final_bullets
@@ -668,6 +636,7 @@ elif st.session_state.step == 8:
     from pptx.util import Inches
 
     prs = Presentation()
+
     slide = prs.slides.add_slide(prs.slide_layouts[0])
     slide.shapes.title.text = "TURF Analysis Summary"
     slide.placeholders[1].text = "Auto-generated summary of reach and GPT recommendation."
