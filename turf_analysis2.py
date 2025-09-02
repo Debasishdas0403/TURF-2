@@ -469,12 +469,21 @@ elif st.session_state.step == 6:
                 {"role": "system", "content": "You are a marketing analytics and messaging expert."},
                 {"role": "user", "content": prompt}
             ],
-            temperature=0.3
+            temperature=0.1  # Lower temperature for consistency
         )
         gpt_recommendation = response.choices[0].message.content
         st.markdown("### 🤖 GPT Recommendation")
         st.success(gpt_recommendation)
         st.session_state["gpt_recommendation"] = gpt_recommendation
+        
+        # ✅ FREEZE BUNDLE SIZE FROM STEP 6 GPT RECOMMENDATION
+        import re
+        bundle_size_match = re.search(r'\b(\d)\s*messages?\b', gpt_recommendation)
+        if bundle_size_match:
+            st.session_state["recommended_bundle_size"] = int(bundle_size_match.group(1))
+        else:
+            st.session_state["recommended_bundle_size"] = int(turf_summary.sort_values("Reach (%)", ascending=False).iloc[0]["Messages in Bundle"])
+        
     except Exception as e:
         st.warning(f"⚠️ GPT recommendation skipped: {e}")
 
@@ -563,22 +572,24 @@ elif st.session_state.step == 8:
     for k, combo in best_combos.items():
         st.markdown(f"- **{k} messages** → {', '.join([m.split('_')[0] for m in combo])}")
 
-    # --- STEP 1: Extract bundle size from GPT step 6 response ---
-    import re
-    raw_gpt_text = st.session_state.get("gpt_recommendation", "")
-    bundle_size_match = re.search(r'\b(\d)\s*messages?\b', raw_gpt_text)
-
-    if bundle_size_match:
-        bundle_size = int(bundle_size_match.group(1))
-    else:
-        bundle_size = int(turf_summary.sort_values("Reach (%)", ascending=False).iloc[0]["Messages in Bundle"])
+    # ✅ USE FROZEN BUNDLE SIZE FROM STEP 6 RECOMMENDATION
+    bundle_size = st.session_state.get("recommended_bundle_size")
+    if bundle_size is None:
+        # Fallback to old logic if not present
+        import re
+        raw_gpt_text = st.session_state.get("gpt_recommendation", "")
+        bundle_size_match = re.search(r'\b(\d)\s*messages?\b', raw_gpt_text)
+        if bundle_size_match:
+            bundle_size = int(bundle_size_match.group(1))
+        else:
+            bundle_size = int(turf_summary.sort_values("Reach (%)", ascending=False).iloc[0]["Messages in Bundle"])
 
     # --- STEP 2: Fetch best combo and reach for that size ---
     row = turf_summary[turf_summary["Messages in Bundle"] == bundle_size].iloc[0]
     best_combo = best_combos[bundle_size]
     best_combo_labels = ", ".join([m.split("_")[0] for m in best_combo])
 
-    # --- STEP 3: Build GPT Prompt with selected bundle size ---
+    # --- STEP 3: Build GPT Prompt with frozen bundle size ---
     gpt_prompt = (
         "You are a pharma marketing strategist. Based on the TURF analysis and Monte Carlo simulation, "
         "summarize the recommended bundle strategy as three concise bullet points:\n\n"
@@ -604,7 +615,7 @@ elif st.session_state.step == 8:
                 {"role": "system", "content": "You are an expert in healthcare message optimization."},
                 {"role": "user", "content": gpt_prompt}
             ],
-            temperature=0.3
+            temperature=0.1  # Lower temperature for consistency
         )
         gpt_final_bullets = response.choices[0].message.content.strip()
         st.session_state["gpt_final_summary"] = gpt_final_bullets
